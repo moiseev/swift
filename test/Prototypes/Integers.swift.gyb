@@ -219,6 +219,7 @@ public protocol IntegerType : ${IntegerTypeBase} {
   init<T : IntegerType>(_ source: T)
   
   init<T : IntegerType>(extendingOrTruncating source: T)
+  init<T : IntegerType>(clamping source: T)
 
   mutating func addInPlace(rhs: Self) -> ArithmeticOverflow
 
