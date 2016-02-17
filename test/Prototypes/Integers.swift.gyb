@@ -221,8 +221,6 @@ public protocol IntegerType : ${IntegerTypeBase} {
   init<T : IntegerType>(extendingOrTruncating source: T)
   init<T : IntegerType>(clamping source: T)
 
-  mutating func addInPlace(rhs: Self) -> ArithmeticOverflow
-
   static var isSigned: Bool { get }
 }
 
@@ -494,12 +492,6 @@ extension FixedWidthIntegerType {
     else { self = Self(extendingOrTruncating: source) }
   }
   
-  public mutating func addInPlace(rhs: Self) -> ArithmeticOverflow {
-    let (result, overflow) = addWithOverflow(rhs)
-    self = result
-    return overflow
-  }
-
 % for x in binaryArithmetic:
   @_transparent
   public mutating func ${x.name}InPlace(rhs: Self) {
