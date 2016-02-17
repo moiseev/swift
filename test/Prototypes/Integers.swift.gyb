@@ -709,6 +709,7 @@ extension SignedIntegerType where Self : FixedWidthIntegerType {
 %     Self = ('Int%d' if signed else 'UInt%d') % bits
 %     Unsigned = 'Signed' if signed else 'Unsigned'
 %     u = 's' if signed else 'u'
+%     U = 'U' if signed else ''
 %     z = 's' if signed else 'z'
 public struct ${Self}
   : FixedWidthIntegerType, ${Unsigned}IntegerType,
@@ -719,12 +720,12 @@ public struct ${Self}
     _storage = Builtin.truncOrBitCast_${IntLiteral}_Int${bits}(x)
     Builtin.condfail(
       Builtin.cmp_ne_${IntLiteral}(
-        Builtin.${'s' if signed else 'z'}extOrBitCast_Int${bits}_${IntLiteral}(
+        Builtin.${z}extOrBitCast_Int${bits}_${IntLiteral}(
           _storage), x))
   }
 
   @_transparent
-  public init(bitPattern x: ${'U' if signed else ''}Int${bits}) {
+  public init(bitPattern x: ${U}Int${bits}) {
     _storage = x._storage
   }
 
