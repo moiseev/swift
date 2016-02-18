@@ -35,8 +35,7 @@ builtinIntLiteralBits = 2048
 IntLiteral = 'Int%s' % builtinIntLiteralBits
 
 # 32-bit iOS simulator doesn't have Int128 support, so we stop at
-# double-word.  When we've implemented the arithmetic algorithms
-# for bignum, we can go further.
+# double-word.
 fixedBitWidths = [8, 16, 32, 64, 128]
   
 class struct(object):
@@ -194,9 +193,7 @@ public protocol IntegerType : ${IntegerTypeBase} {
 
   // FIXME: Ideally, this constraint would just be : IntegerType.
   // Until we get recursive protocol requirements, that isn't
-  // possible, and we really need to factor IntegerType differently
-  // than it currently is so we can remove the constraints on
-  // AbsoluteValue in the multiprecision multiplication routines.
+  // possible.
   associatedtype AbsoluteValue : ${IntegerTypeBase} 
 
   var absoluteValue: AbsoluteValue { get }
