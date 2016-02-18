@@ -37,7 +37,7 @@ IntLiteral = 'Int%s' % builtinIntLiteralBits
 # 32-bit iOS simulator doesn't have Int128 support, so we stop at
 # double-word.  When we've implemented the arithmetic algorithms
 # for bignum, we can go further.
-fixedBitWidths = [2 ** x for x in range(3, 8) if 2 ** x <= 2 * word_bits]
+fixedBitWidths = [8, 16, 32, 64, 128]
   
 class struct(object):
   def __init__(self, **kw):
@@ -368,8 +368,11 @@ ${comment}
   func ${x.name}WithOverflow(
     rhs: Self
   ) -> (partialValue: Self, overflow: ArithmeticOverflow)
-  % end
-  
+% end
+
+  @warn_unused_result
+  func doubleWidthMultiply(other: Self) -> (high: Self, low: AbsoluteValue)
+
   static var max: Self { get }
   
   static var min: Self { get }
@@ -836,6 +839,26 @@ public struct ${Self}
     return self < 0 ? ~base + 1 : base
   }
 % end
+
+%     dbits = bits*2
+  @warn_unused_result
+  public func doubleWidthMultiply(other: ${Self})
+    -> (high: ${Self}, low: ${Self}.AbsoluteValue) {
+%       if bits > 64:
+    fatalError("${bits}-bit integer multiplication is not supported")
+%       else:
+    let lhs = Builtin.sext_Int${bits}_Int${dbits}(self._storage)
+    let rhs = Builtin.sext_Int${bits}_Int${dbits}(other._storage)
+
+    let res = Builtin.mul_Int${dbits}(lhs, rhs)
+    let low = ${Self}.AbsoluteValue(Builtin.truncOrBitCast_Int${dbits}_Int${bits}(res))
+    let shift: UInt8 = ${bits}
+    let shifted = Builtin.ashr_Int${dbits}(res,
+      Builtin.zextOrBitCast_Int8_Int${dbits}(shift._storage))
+    let high = ${Self}(Builtin.truncOrBitCast_Int${dbits}_Int${bits}(shifted))
+    return (high: high, low: low)
+%       end
+  }
   
   public var _storage: Builtin.Int${bits}
 }
@@ -1318,6 +1341,30 @@ tests.test("uword") {
   let z = UWord(~Word.min) + 1
   expectEqual(Word.min._lowUWord, z.uword(0))
   expectEqual(0, z.uword(1))
+}
+
+tests.test("DoubeWidthMultiply/UInt8") {
+  let a: UInt8 = 42
+  let b: UInt8 = 42
+  let res = a.doubleWidthMultiply(b)
+  expectEqual(0x06, res.high)
+  expectEqual(0xe4, res.low)
+}
+
+tests.test("DoubeWidthMultiply/Int8") {
+  let a: Int8 = 42
+  let b: Int8 = -42
+  let res = a.doubleWidthMultiply(b)
+  expectEqual(Int8(bitPattern: 0xf9), res.high)
+  expectEqual(0x1c, res.low)
+}
+
+tests.test("DoubeWidthMultiply/Int8/DoubleNegation") {
+  let a: Int8 = -42
+  let b: Int8 = -42
+  let res = a.doubleWidthMultiply(b)
+  expectEqual(0x06, res.high)
+  expectEqual(0xe4, res.low)
 }
 
 runAllTests()
