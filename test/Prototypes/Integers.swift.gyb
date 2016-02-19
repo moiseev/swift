@@ -179,11 +179,6 @@ public protocol WordOpsType {
   func uword(n: Word) -> UWord
 
   var countRepresentedWords: Word { get }
-
-  /// Replace as many bits as possible of the `n`th UWord of our
-  /// representation with newBits, returning `true` iff all of the
-  /// bits were replaced.
-  mutating func replaceUWord(n: Word, with newBits: UWord) -> Bool
 }
 
 % IntegerTypeBase = 'Comparable, ArithmeticType, WordOpsType,' + \
@@ -196,6 +191,10 @@ public protocol IntegerType : ${IntegerTypeBase} {
   // possible.
   associatedtype AbsoluteValue : ${IntegerTypeBase} 
 
+  /// An absolute value of the represented number.
+  ///
+  /// Please note that `absoluteValue` has a different type than `self`, and so
+  /// `abs(_:)` free function might be preferred for your use-case.
   var absoluteValue: AbsoluteValue { get }
   
   // Dispatching through these puts less stress on the user reading
@@ -565,16 +564,6 @@ extension FixedWidthIntegerType {
     return (Self.bitWidth + ${word_bits} - 1) / ${word_bits}
   }
   
-  // @_transparent
-  public mutating func replaceUWord(n: Word, with newBits: UWord) -> Bool {
-    let flippedBits = uword(n) ^ newBits
-    self ^= Self(_truncatingBits: flippedBits) << (${word_bits} * n)
-    if uword(n) != newBits {
-      _log("###### overflow replacing word \(n) with \(newBits.hex)")
-    }
-    return uword(n) == newBits
-  }
-  
   @_transparent
   public // transparent
   static var _highBitIndex: Self {
@@ -865,7 +854,17 @@ public struct ${Self}
 
 //===--- Tests ------------------------------------------------------------===//
 
-extension WordOpsType where Self : IntegerType {
+extension WordOpsType where Self : FixedWidthIntegerType {
+  // @_transparent
+  public mutating func replaceUWord(n: Word, with newBits: UWord) -> Bool {
+    let flippedBits = uword(n) ^ newBits
+    self ^= Self(_truncatingBits: flippedBits) << (${word_bits} * n)
+    if uword(n) != newBits {
+      _log("###### overflow replacing word \(n) with \(newBits.hex)")
+    }
+    return uword(n) == newBits
+  }
+
   /// a hex representation of every bit in the number
   func hexBits(bitWidth: Word) -> String {
     let hexDigits: [UnicodeScalar] = [
@@ -908,7 +907,7 @@ import SwiftPrivate
 import ObjectiveC
 #endif
 
-func expectEqual<T: IntegerType>(
+func expectEqual<T : FixedWidthIntegerType>(
   expected: T, _ actual: T,
   @autoclosure _ message: () -> String = "",
   showFrame: Bool = true,
@@ -928,7 +927,7 @@ func expectEqual<T: IntegerType>(
   }
 }
 
-func expectEqual<T: IntegerType>(
+func expectEqual<T : FixedWidthIntegerType>(
   expected: (T, ArithmeticOverflow), _ actual: (T, ArithmeticOverflow),
   @autoclosure _ message: () -> String = "",
   showFrame: Bool = true,
