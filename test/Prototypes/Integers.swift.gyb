@@ -174,14 +174,7 @@ public prefix func -<T: SignedArithmeticType>(x: T) -> T {
 public typealias Word = Int${word_bits}
 public typealias UWord = UInt${word_bits}
 
-public protocol WordOpsType {
-  @warn_unused_result
-  func uword(n: Word) -> UWord
-
-  var countRepresentedWords: Word { get }
-}
-
-% IntegerTypeBase = 'Comparable, ArithmeticType, WordOpsType,' + \
+% IntegerTypeBase = 'Comparable, ArithmeticType,' + \
 %                   'IntegerLiteralConvertible, CustomStringConvertible'
 
 public protocol IntegerType : ${IntegerTypeBase} {
@@ -216,6 +209,11 @@ public protocol IntegerType : ${IntegerTypeBase} {
   
   init<T : IntegerType>(extendingOrTruncating source: T)
   init<T : IntegerType>(clamping source: T)
+
+  @warn_unused_result
+  func uword(n: Word) -> UWord
+
+  var countRepresentedWords: Word { get }
 
   static var isSigned: Bool { get }
 }
@@ -854,7 +852,7 @@ public struct ${Self}
 
 //===--- Tests ------------------------------------------------------------===//
 
-extension WordOpsType where Self : FixedWidthIntegerType {
+extension FixedWidthIntegerType {
   // @_transparent
   public mutating func replaceUWord(n: Word, with newBits: UWord) -> Bool {
     let flippedBits = uword(n) ^ newBits
