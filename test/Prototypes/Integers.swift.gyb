@@ -213,20 +213,14 @@ public protocol IntegerType : ${IntegerTypeBase} {
   @warn_unused_result
   func uword(n: Word) -> UWord
 
-  var countRepresentedWords: Word { get }
-
   static var isSigned: Bool { get }
+
+  var bitWidth : Word { get }
 }
 
 extension IntegerType {
-  /// The number of words required to represent our value.  If `self`
-  /// is negative, returns the index of the least significant words of
-  /// our representation such that all more-significant words are -1.
-  /// Has the value -1 if `self` is 0.
-  @_transparent
-  public // transparent
-  var _mostSignificantWord: Word {
-    return significantBitCount &>> ${int(log(word_bits,2))}
+  public var countRepresentedWords: Word {
+    return (self.bitWidth + ${word_bits} - 1) / ${word_bits}
   }
 }
 
@@ -532,7 +526,7 @@ extension FixedWidthIntegerType {
     else {
       var result: Self = source < 0 ? ~0 : 0
       // start with the most significant word
-      var n = source._mostSignificantWord
+      var n = source.countRepresentedWords
       while n >= 0 {
         // masking is OK here because this we have already ensured
         // that Self.bitWidth > ${word_bits}.  Not masking results in
@@ -558,10 +552,6 @@ extension FixedWidthIntegerType {
     return self < 0 ? ~0 : 0
   }
 
-  public var countRepresentedWords: Word {
-    return (Self.bitWidth + ${word_bits} - 1) / ${word_bits}
-  }
-  
   @_transparent
   public // transparent
   static var _highBitIndex: Self {
@@ -789,6 +779,8 @@ public struct ${Self}
 
   @_transparent
   public static var bitWidth : Word { return ${bits} }
+
+  public var bitWidth: Word { return ${bits} }
 
   @_transparent
   @warn_unused_result
