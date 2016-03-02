@@ -349,7 +349,7 @@ comment = '''
   /// truncated to fit if necessary, and a flag indicating whether an
   /// arithmetic overflow occurred.''' + ('''
   ///
-  /// Precondition: `rhs != 0`''' if x.kind == '/' else '')
+  /// - Precondition: `rhs != 0`''' if x.kind == '/' else '')
 }%
 ${comment}
   @warn_unused_result
