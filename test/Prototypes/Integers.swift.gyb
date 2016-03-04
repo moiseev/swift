@@ -36,7 +36,7 @@ IntLiteral = 'Int%s' % builtinIntLiteralBits
 
 # 32-bit iOS simulator doesn't have Int128 support, so we stop at
 # double-word.
-fixedBitWidths = [8, 16, 32, 64, 128]
+fixedBitWidths = [x for x in [8, 16, 32, 64, 128] if x <= 2*word_bits]
   
 class struct(object):
   def __init__(self, **kw):
