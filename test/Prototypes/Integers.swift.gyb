@@ -130,30 +130,41 @@ public protocol ArithmeticType {
   init()
   
 % for x in binaryArithmetic:
-  // defaulted below
+  // defaulted using an InPlace counterpart, but can be used as an
+  // optimization hook
   @warn_unused_result
-  func ${x.operator}(lhs: Self, rhs: Self) -> Self
-
-  // defaulted below
-  func ${x.operator}=(lhs: inout Self, rhs: Self)
+  func ${x.name}(rhs: Self) -> Self
 
   // implementation hook
   mutating func ${x.name}InPlace(rhs: Self)
 % end
 }
 
+extension ArithmeticType {
+% for x in binaryArithmetic:
+  public func ${x.name}(rhs: Self) -> Self {
+    var lhs = self
+    lhs.${x.name}InPlace(rhs)
+    return lhs
+  }
+% end
+}
+
 public protocol SignedArithmeticType : ArithmeticType {
-  /// defaulted below
-  prefix func -(lhs: Self) -> Self
+  func negate() -> Self
+}
+
+extension SignedArithmeticType {
+  public func negate() -> Self {
+    return Self() - self
+  }
 }
 
 % for x in binaryArithmetic:
 @_transparent
 @warn_unused_result
 public func ${x.operator} <T: ArithmeticType>(lhs: T, rhs: T) -> T {
-  var lhs = lhs
-  lhs.${x.name}InPlace(rhs)
-  return lhs
+  return lhs.${x.name}(rhs)
 }
 
 @_transparent
@@ -165,7 +176,7 @@ public func ${x.operator}= <T: ArithmeticType>(lhs: inout T, rhs: T) {
 @_transparent
 @warn_unused_result
 public prefix func -<T: SignedArithmeticType>(x: T) -> T {
-  return T() - x
+  return x.negate()
 }
 
 //===----------------------------------------------------------------------===//
