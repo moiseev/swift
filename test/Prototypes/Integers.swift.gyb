@@ -386,8 +386,6 @@ ${comment}
   func countLeadingZeros() -> Word
 
   init(_truncatingBits bits: UWord)
-
-  var _lowUWord: UWord { get }
 }
 
 % for x in binaryBitwise:
@@ -550,18 +548,6 @@ extension FixedWidthIntegerType {
       
       self = result
     }
-  }
-
-  @_transparent
-  public func uword(n: Word) -> UWord {
-    _precondition(n >= 0, "Negative word index")
-    if _fastPath(n < countRepresentedWords) {
-      let shift = UWord(n._storage) &* ${word_bits}
-      let bitWidth = UWord(Self.bitWidth._storage)
-      _sanityCheck(shift < bitWidth)
-      return (self &>> Self(_truncatingBits: shift))._lowUWord
-    }
-    return self < 0 ? ~0 : 0
   }
 
   @_transparent
@@ -802,6 +788,19 @@ public struct ${Self}
         Builtin.int_ctlz_Int${bits}(self._storage, false.__value)
       )._lowUWord._storage)
   }
+
+  @_transparent
+  public func uword(n: Word) -> UWord {
+    _precondition(n >= 0, "Negative word index")
+    if _fastPath(n < countRepresentedWords) {
+      let shift = UWord(n._storage) &* ${word_bits}
+      let bitWidth = UWord(self.bitWidth._storage)
+      _sanityCheck(shift < bitWidth)
+      return (self &>> ${Self}(_truncatingBits: shift))._lowUWord
+    }
+    return self < 0 ? ~0 : 0
+  }
+
   
   @_transparent
   public // transparent
