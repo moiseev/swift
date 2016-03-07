@@ -226,6 +226,7 @@ public protocol IntegerType : ${IntegerTypeBase} {
 
   static var isSigned: Bool { get }
 
+  // A number of bits in current representation of `self`
   var bitWidth : Word { get }
 }
 
