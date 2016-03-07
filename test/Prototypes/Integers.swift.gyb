@@ -222,7 +222,7 @@ public protocol IntegerType : ${IntegerTypeBase} {
   init<T : IntegerType>(clamping source: T)
 
   @warn_unused_result
-  func uword(n: Word) -> UWord
+  func nthWord(n: Word) -> UWord
 
   static var isSigned: Bool { get }
 
@@ -531,7 +531,7 @@ extension FixedWidthIntegerType {
   @_transparent
   public init<T : IntegerType>(extendingOrTruncating source: T) {
     if Self.bitWidth <= ${word_bits} {
-      self = Self.init(_truncatingBits: source.uword(0))
+      self = Self.init(_truncatingBits: source.nthWord(0))
     }
     else {
       var result: Self = source < 0 ? ~0 : 0
@@ -542,7 +542,7 @@ extension FixedWidthIntegerType {
         // that Self.bitWidth > ${word_bits}.  Not masking results in
         // infinite recursion.
         result &<<= ${word_bits}
-        result |= Self(_truncatingBits: source.uword(n))
+        result |= Self(_truncatingBits: source.nthWord(n))
         n -= 1
       }
       
@@ -790,7 +790,7 @@ public struct ${Self}
   }
 
   @_transparent
-  public func uword(n: Word) -> UWord {
+  public func nthWord(n: Word) -> UWord {
     _precondition(n >= 0, "Negative word index")
     if _fastPath(n < countRepresentedWords) {
       let shift = UWord(n._storage) &* ${word_bits}
@@ -858,12 +858,12 @@ public struct ${Self}
 extension FixedWidthIntegerType {
   // @_transparent
   public mutating func replaceUWord(n: Word, with newBits: UWord) -> Bool {
-    let flippedBits = uword(n) ^ newBits
+    let flippedBits = nthWord(n) ^ newBits
     self ^= Self(_truncatingBits: flippedBits) << (${word_bits} * n)
-    if uword(n) != newBits {
+    if nthWord(n) != newBits {
       _log("###### overflow replacing word \(n) with \(newBits.hex)")
     }
-    return uword(n) == newBits
+    return nthWord(n) == newBits
   }
 
   /// a hex representation of every bit in the number
@@ -879,7 +879,7 @@ extension FixedWidthIntegerType {
       if nibbles % 4 == 0 && nibbles != 0 {
         result.insert("_", at: result.startIndex)
       }
-      let lowUWord = x.uword(0)
+      let lowUWord = x.nthWord(0)
       result.insert(
         hexDigits[Swift.Int(lowUWord._storage) & 0xF],
         at: result.startIndex
@@ -1326,18 +1326,18 @@ tests.test("Basics") {
   expectEqual(32, Int32.bitWidth)
 }
 
-tests.test("uword") {
+tests.test("nthWord") {
   let x = UDWord(Word.max)
-  expectEqual(Word.max._lowUWord, x.uword(0))
-  expectEqual(0, x.uword(1))
+  expectEqual(Word.max._lowUWord, x.nthWord(0))
+  expectEqual(0, x.nthWord(1))
   
   let y = DWord(Word.min)
-  expectEqual(Word.min._lowUWord, y.uword(0))
-  expectEqual(~0, y.uword(1))
+  expectEqual(Word.min._lowUWord, y.nthWord(0))
+  expectEqual(~0, y.nthWord(1))
 
   let z = UWord(~Word.min) + 1
-  expectEqual(Word.min._lowUWord, z.uword(0))
-  expectEqual(0, z.uword(1))
+  expectEqual(Word.min._lowUWord, z.nthWord(0))
+  expectEqual(0, z.nthWord(1))
 }
 
 tests.test("DoubeWidthMultiply/UInt8") {
