@@ -210,12 +210,6 @@ public protocol IntegerType : ${IntegerTypeBase} {
   @warn_unused_result
   func isLessThan(rhs: Self) -> Bool
 
-  /// The number of bits required to represent our value.  If `self`
-  /// is negative, returns the index of the least significant bit of
-  /// our representation such that all more-significant bits are 1.
-  /// Has the value -1 if `self` is 0.
-  var significantBitCount: Word { get }
-  
   init<T : IntegerType>(_ source: T)
   
   init<T : IntegerType>(extendingOrTruncating source: T)
@@ -227,7 +221,13 @@ public protocol IntegerType : ${IntegerTypeBase} {
   static var isSigned: Bool { get }
 
   // A number of bits in current representation of `self`
+  // Will be constant for fixed-width integer types.
   var bitWidth : Word { get }
+
+  /// If `self` is negative, returns the index of the least significant bit of
+  /// our representation such that all more-significant bits are 1.
+  /// Has the value -1 if `self` is 0.
+  var signBitIndex: Word { get }
 }
 
 extension IntegerType {
@@ -381,9 +381,6 @@ ${comment}
   @warn_unused_result
   func ${x.name}(rhs: Self) -> Self
 % end
-
-  @warn_unused_result
-  func countLeadingZeros() -> Word
 
   init(_truncatingBits bits: UWord)
 }
@@ -606,7 +603,7 @@ extension UnsignedIntegerType where Self : FixedWidthIntegerType {
   public init<T : IntegerType>(_ source: T) {
     _assertCond(
       source >= 0, "negative value \(source) not representable by \(Self.self)")
-    let requiredBits = source.significantBitCount + 1
+    let requiredBits = source.signBitIndex + 1
     _assertCond(
       requiredBits <= Self.bitWidth,
       "\(Self.self) cannot store all \(requiredBits)  bits "
@@ -624,10 +621,6 @@ extension UnsignedIntegerType where Self : FixedWidthIntegerType {
     return 0
   }
 
-  @_transparent
-  public var significantBitCount: Word {
-    return Self.bitWidth - 1 - self.countLeadingZeros()
-  }
 }
 
 //===----------------------------------------------------------------------===//
@@ -651,7 +644,7 @@ extension SignedIntegerType {
 extension SignedIntegerType where Self : FixedWidthIntegerType {
   @_transparent
   public init<T : IntegerType>(_ source: T) {
-    let requiredBits = source.significantBitCount + (source >= 0 ? 2 : 1)
+    let requiredBits = source.signBitIndex + (source >= 0 ? 2 : 1)
     _assertCond(
       requiredBits <= Self.bitWidth,
       "\(Self.self) cannot store all \(requiredBits) bits "
@@ -669,11 +662,6 @@ extension SignedIntegerType where Self : FixedWidthIntegerType {
     return -1 &<< Self._highBitIndex
   }
 
-  @_transparent
-  public var significantBitCount: Word {
-    let x = self < 0 ? ~self : self
-    return Self.bitWidth - 1 - x.countLeadingZeros()
-  }
 }
 
 //===--- Concrete FixedWidthIntegers --------------------------------------===//
@@ -779,6 +767,17 @@ public struct ${Self}
   public static var bitWidth : Word { return ${bits} }
 
   public var bitWidth: Word { return ${bits} }
+
+  @_transparent
+  public var signBitIndex: Word {
+% if signed:
+    let x = self < 0 ? ~self : self
+    return ${Self}.bitWidth - 1 - x.countLeadingZeros()
+% else:
+    return ${Self}.bitWidth - 1 - self.countLeadingZeros()
+% end
+  }
+
 
   @_transparent
   @warn_unused_result
@@ -1064,12 +1063,12 @@ tests.test("CountLeadingZeros") {
   expectEqual(0, Int8.min.countLeadingZeros())
 }
 
-tests.test("significantBitCount") {
-  expectEqual(7, UInt8.max.significantBitCount)
-  expectEqual(-1, UInt8.min.significantBitCount)
-  expectEqual(6, Int8.max.significantBitCount)
-  expectEqual(-1, (0 as Int8).significantBitCount)
-  expectEqual(6, Int8.min.significantBitCount)
+tests.test("signBitIndex") {
+  expectEqual(7, UInt8.max.signBitIndex)
+  expectEqual(-1, UInt8.min.signBitIndex)
+  expectEqual(6, Int8.max.signBitIndex)
+  expectEqual(-1, (0 as Int8).signBitIndex)
+  expectEqual(6, Int8.min.signBitIndex)
 }
 
 tests.test("Conversion8to16") {
