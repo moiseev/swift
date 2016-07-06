@@ -153,6 +153,24 @@ public protocol Arithmetic : Equatable, IntegerLiteralConvertible {
   /// returns `nil` otherwise.
   init?<T : Integer>(exactly source: T)
 
+  /// A type that can hold absolute values of all the possible values of `Self`.
+  /// Concrete types do not have to provide a typealias for it as it can be
+  /// inferred from an `magnitude` property. This property (and type) can be
+  /// useful in operations that are simpler to implement in terms of
+  /// (potentially larger) unsigned values, for example, printing a value of an
+  /// integer (it's just adding a '-' character in front of an absolute value).
+  /// Please note, that `magnitude` property should not in general be used
+  /// as a substitute for an `abs` free function, that returns a value of the
+  /// same type.
+  // FIXME(ABI): should be just Arithmetic
+  associatedtype Magnitude : Equatable, IntegerLiteralConvertible
+  /// An absolute value of the represented number.
+  ///
+  /// Please note that `magnitude` has a different type than `self`, and so
+  /// `abs(_:)` free function might be preferred for your use-case.
+  var magnitude: Magnitude { get }
+
+
 % for x in binaryArithmetic['Arithmetic']:
   // defaulted using an in-place counterpart, but can be used as an
   // optimization hook
@@ -228,8 +246,6 @@ public prefix func -<T: SignedArithmetic>(x: T) -> T {
 public typealias Word = Int${word_bits}
 public typealias UWord = UInt${word_bits}
 
-% IntegerBase = 'Comparable, Arithmetic, ' + \
-%               'IntegerLiteralConvertible, CustomStringConvertible'
 
 /// Integer protocol is a base for all the integer types that are available in
 /// the standard library, and besides should be sufficient to implement
@@ -249,30 +265,10 @@ public typealias UWord = UInt${word_bits}
 ///   - Try to represent the value without bounds checking
 ///   - Substitute values beyond `Self` bounds with maximum/minimum value of
 ///     `Self` respectively
-public protocol Integer : ${IntegerBase} {
-
-  // FIXME(ABI): Ideally, this constraint would just be :
-  // Integer.  Until we get recursive protocol requirements, that isn't
-  // possible.
-
-  /// A type that can hold absolute values of all the possible values of `Self`.
-  /// Concrete types do not have to provide a typealias for it as it can be
-  /// inferred from an `absoluteValue` property. This property (and type) can be
-  /// useful in operations that are simpler to implement in terms of
-  /// (potentially larger) unsigned values, for example, printing a value of an
-  /// integer (it's just adding a '-' character in front of an absolute value).
-  /// Please note, that `absoluteValue` property should not in general be used
-  /// as a substitute for an `abs` free function, that returns a value of the
-  /// same type.
-  associatedtype AbsoluteValue : ${IntegerBase}
+public protocol Integer :
+  Comparable, Arithmetic, IntegerLiteralConvertible, CustomStringConvertible {
 
   static var isSigned: Bool { get }
-
-  /// An absolute value of the represented number.
-  ///
-  /// Please note that `absoluteValue` has a different type than `self`, and so
-  /// `abs(_:)` free function might be preferred for your use-case.
-  var absoluteValue: AbsoluteValue { get }
 
   // Dispatching through these puts less stress on the user reading
   // the interface and error messages (and on the type checker) than
@@ -495,7 +491,7 @@ ${comment}
   func ${x.name}(_ rhs: Self) -> Self
 % end
 
-  func doubleWidthMultiply(_ other: Self) -> (high: Self, low: AbsoluteValue)
+  func doubleWidthMultiply(_ other: Self) -> (high: Self, low: Magnitude)
 
   init(_truncatingBits bits: UWord)
 }
@@ -671,12 +667,12 @@ public func &${x.operator} <T: FixedWidthInteger>(lhs: T, rhs: T) -> T {
 //===--- UnsignedInteger --------------------------------------------------===//
 //===----------------------------------------------------------------------===//
 public protocol UnsignedInteger : Integer {
-  associatedtype AbsoluteValue : Integer
+  associatedtype Magnitude : Integer
 }
 
 extension UnsignedInteger {
   @_transparent
-  public var absoluteValue: Self { return self }
+  public var magnitude: Self { return self }
 
   @_transparent
   public static var isSigned: Bool { return false }
@@ -743,12 +739,12 @@ extension UnsignedInteger where Self : FixedWidthInteger {
 //===----------------------------------------------------------------------===//
 
 public protocol SignedInteger : Integer, SignedArithmetic {
-  associatedtype AbsoluteValue : Integer
+  associatedtype Magnitude : Integer
 }
 
 extension SignedInteger {
   public var description: String {
-    let base = String(absoluteValue)
+    let base = String(magnitude)
     return self < 0 ? "-" + base : base
   }
 
@@ -937,7 +933,7 @@ public struct ${Self}
 
 % if signed:
   @_transparent
-  public var absoluteValue: U${Self} {
+  public var magnitude: U${Self} {
     let base = U${Self}(_storage)
     return self < 0 ? ~base + 1 : base
   }
@@ -945,7 +941,7 @@ public struct ${Self}
 
 %     dbits = bits*2
   public func doubleWidthMultiply(_ other: ${Self})
-    -> (high: ${Self}, low: ${Self}.AbsoluteValue) {
+    -> (high: ${Self}, low: ${Self}.Magnitude) {
 %       if bits > 64:
     fatalError("${bits}-bit integer multiplication is not supported")
 %       else:
@@ -953,7 +949,7 @@ public struct ${Self}
     let rhs = Builtin.${z}ext_Int${bits}_Int${dbits}(other._storage)
 
     let res = Builtin.mul_Int${dbits}(lhs, rhs)
-    let low = ${Self}.AbsoluteValue(Builtin.truncOrBitCast_Int${dbits}_Int${bits}(res))
+    let low = ${Self}.Magnitude(Builtin.truncOrBitCast_Int${dbits}_Int${bits}(res))
     let shift: UInt8 = ${bits}
     let shifted = Builtin.ashr_Int${dbits}(res,
       Builtin.zextOrBitCast_Int8_Int${dbits}(shift._storage))
@@ -972,14 +968,14 @@ public struct ${Self}
 public struct DoubleWidth<
   T : FixedWidthInteger
   where
-  T.AbsoluteValue : FixedWidthInteger,
-  T.AbsoluteValue.AbsoluteValue == T.AbsoluteValue
+  T.Magnitude : FixedWidthInteger,
+  T.Magnitude.Magnitude == T.Magnitude
 > : FixedWidthInteger, _BuiltinIntegerLiteralConvertible {
 
   internal typealias High = T
-  internal typealias Low = T.AbsoluteValue
+  internal typealias Low = T.Magnitude
 
-  internal var _storage: (high: T, low: T.AbsoluteValue)
+  internal var _storage: (high: T, low: T.Magnitude)
 
   internal init(_ _value: (High, Low)) {
     self._storage = (high: _value.0, low: _value.1)
@@ -993,12 +989,12 @@ public struct DoubleWidth<
 
   // integer
   //
-  public var absoluteValue: DoubleWidth<Low> {
+  public var magnitude: DoubleWidth<Low> {
     if T.isSigned && _storage.high < 0 {
-        return DoubleWidth<T>().subtracting(self).absoluteValue
+        return DoubleWidth<T>().subtracting(self).magnitude
     }
     return DoubleWidth<Low>((
-      _storage.high.absoluteValue, _storage.low.absoluteValue))
+      _storage.high.magnitude, _storage.low.magnitude))
   }
 
   public func isEqual(to rhs: DoubleWidth<T>) -> Bool {
@@ -1111,8 +1107,8 @@ public struct DoubleWidth<
 
     var carry: Low = 0
 
-    let lhs = self.absoluteValue
-    let rhs = rhs.absoluteValue
+    let lhs = self.magnitude
+    let rhs = rhs.magnitude
 
     // TODO: gyb me!
     let a = mul(rhs._storage.low, lhs._storage.low, carry)
@@ -1153,7 +1149,7 @@ public struct DoubleWidth<
 % end
 
   public func doubleWidthMultiply(_ other: DoubleWidth<T>)
-    -> (high: DoubleWidth<T>, low: DoubleWidth<T>.AbsoluteValue) {
+    -> (high: DoubleWidth<T>, low: DoubleWidth<T>.Magnitude) {
       fatalError()
   }
 
@@ -1264,15 +1260,15 @@ public struct ${Self}
   }
 
 % if signed:
-  public var absoluteValue: U${Self} {
-    return U${Self}(_storage.absoluteValue)
+  public var magnitude: U${Self} {
+    return U${Self}(_storage.magnitude)
   }
 % end
 
   public func doubleWidthMultiply(_ other: ${Self})
-    -> (high: ${Self}, low: ${Self}.AbsoluteValue) {
+    -> (high: ${Self}, low: ${Self}.Magnitude) {
     let (high: high, low: low) = _storage.doubleWidthMultiply(other._storage)
-    return (high: ${Self}(high), low: ${Self}.AbsoluteValue(low))
+    return (high: ${Self}(high), low: ${Self}.Magnitude(low))
   }
 
   internal init(_ _storage: DoubleWidth<${Half}>) {
@@ -1843,7 +1839,7 @@ tests.test("DoubleWidth/${Type}/adding min and max") {
   let a = DoubleWidth<${Type}>.max
   let b = DoubleWidth<${Type}>.min
   let res = a + b
-  expectEqual(res, DoubleWidth<${Type}>((-1, ${Type}.AbsoluteValue.max)))
+  expectEqual(res, DoubleWidth<${Type}>((-1, ${Type}.Magnitude.max)))
 }
 
 %   for s in ['', 'U']:
@@ -1883,24 +1879,24 @@ tests.test("DoubleWidth/UInt64/nthWord") {
 % end
 }
 
-tests.test("DoubleWidth/Int8/absoluteValue negative") {
+tests.test("DoubleWidth/Int8/magnitude negative") {
   let x = DoubleWidth<Int8>((-1, 0xff))
-  expectEqual(x.absoluteValue, DoubleWidth<UInt8>((0, 1)))
+  expectEqual(x.magnitude, DoubleWidth<UInt8>((0, 1)))
 }
 
-tests.test("DoubleWidth/Int8/absoluteValue zero") {
+tests.test("DoubleWidth/Int8/magnitude zero") {
   let x = DoubleWidth<Int8>((0, 0))
-  expectEqual(x.absoluteValue, DoubleWidth<UInt8>((0, 0)))
+  expectEqual(x.magnitude, DoubleWidth<UInt8>((0, 0)))
 }
 
-tests.test("DoubleWidth/Int8/absoluteValue positive") {
+tests.test("DoubleWidth/Int8/magnitude positive") {
   let x = DoubleWidth<Int8>((0, 0xff))
-  expectEqual(x.absoluteValue, DoubleWidth<UInt8>((0, 0xff)))
+  expectEqual(x.magnitude, DoubleWidth<UInt8>((0, 0xff)))
 }
 
-tests.test("DoubleWidth/UInt8/absoluteValue") {
+tests.test("DoubleWidth/UInt8/magnitude") {
   let x = DoubleWidth<UInt8>((0, 1))
-  expectEqual(x.absoluteValue, DoubleWidth<UInt8>((0, 1)))
+  expectEqual(x.magnitude, DoubleWidth<UInt8>((0, 1)))
 }
 
 tests.test("DoubleWidth/UInt8/multiply overflow") {
