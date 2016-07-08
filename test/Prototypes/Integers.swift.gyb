@@ -493,6 +493,9 @@ ${comment}
 
   static func doubleWidthMultiply(_ lhs: Self, _ rhs: Self)
     -> (high: Self, low: Magnitude)
+  static func doubleWidthDivide(
+    _ lhs: (high: Self, low: Magnitude), _ rhs: Self)
+    -> (quotient: Self, remainder: Self)
 
   init(_truncatingBits bits: UWord)
 
@@ -658,6 +661,12 @@ extension FixedWidthInteger {
   }
 
   public var popcount: Word {
+    fatalError()
+  }
+
+  public static func doubleWidthDivide(
+    _ lhs: (high: Self, low: Magnitude), _ rhs: Self)
+    -> (quotient: Self, remainder: Self) {
     fatalError()
   }
 }
