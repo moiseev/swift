@@ -494,6 +494,9 @@ ${comment}
   func doubleWidthMultiply(_ other: Self) -> (high: Self, low: Magnitude)
 
   init(_truncatingBits bits: UWord)
+
+  var popcount: Word { get }
+  var leadingZeros: Word { get }
 }
 
 % for x in binaryBitwise:
@@ -651,6 +654,10 @@ extension FixedWidthInteger {
   public // transparent
   static var _highBitIndex: Self {
     return Self.init(_truncatingBits: UWord(Self.bitWidth._storage) &- 1)
+  }
+
+  public var popcount: Word {
+    fatalError()
   }
 }
 
@@ -886,15 +893,15 @@ public struct ${Self}
   public var minimumSignedRepresentationBitWidth: Word {
 % if signed:
     let x = self < 0 ? ~self : self
-    return (x == 0) ? 1 : (${Self}.bitWidth - x.countLeadingZeros() + 1)
+    return (x == 0) ? 1 : (${Self}.bitWidth - x.leadingZeros + 1)
 % else:
-    return (self == 0) ? 1 : (${Self}.bitWidth - self.countLeadingZeros() + 1)
+    return (self == 0) ? 1 : (${Self}.bitWidth - self.leadingZeros + 1)
 % end
   }
 
 
   @_transparent
-  public func countLeadingZeros() -> Word {
+  public var leadingZeros: Word {
     return Word(
       ${Self}(
         Builtin.int_ctlz_Int${bits}(self._storage, false.__value)
@@ -1172,6 +1179,10 @@ public struct DoubleWidth<
   public var description: String {
     return "(\(_storage.high), \(_storage.low))"
   }
+
+  public var leadingZeros: Word {
+    fatalError()
+  }
 }
 
 //===--- Int128/UInt128 ---------------------------------------------------===//
@@ -1245,7 +1256,7 @@ public struct ${Self}
     return _storage.minimumSignedRepresentationBitWidth
   }
 
-  public func countLeadingZeros() -> Word {
+  public var leadingZeros: Word {
     fatalError()
   }
 
@@ -1476,10 +1487,10 @@ tests.test("MinMax") {
 }
 
 tests.test("CountLeadingZeros") {
-  expectEqual(0, UInt8.max.countLeadingZeros())
-  expectEqual(8, UInt8.min.countLeadingZeros())
-  expectEqual(1, Int8.max.countLeadingZeros())
-  expectEqual(0, Int8.min.countLeadingZeros())
+  expectEqual(0, UInt8.max.leadingZeros)
+  expectEqual(8, UInt8.min.leadingZeros)
+  expectEqual(1, Int8.max.leadingZeros)
+  expectEqual(0, Int8.min.leadingZeros)
 }
 
 tests.test("minimumSignedRepresentationBitWidth") {
