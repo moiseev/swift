@@ -300,7 +300,7 @@ public protocol Integer :
 
   /// Return n-th word (counting from the right) in the underlying
   /// representation of `self`.
-  func nthWord(_ n: Word) -> UWord
+  func word(at n: Word) -> UWord
 
   /// A number of bits in current representation of `self`
   /// Will be constant for fixed-width integer types.
@@ -631,7 +631,7 @@ extension FixedWidthInteger {
   @_transparent
   public init<T : Integer>(extendingOrTruncating source: T) {
     if Self.bitWidth <= ${word_bits} {
-      self = Self.init(_truncatingBits: source.nthWord(0))
+      self = Self.init(_truncatingBits: source.word(at: 0))
     }
     else {
       var result: Self = source < 0 ? ~0 : 0
@@ -642,7 +642,7 @@ extension FixedWidthInteger {
         // that Self.bitWidth > ${word_bits}.  Not masking results in
         // infinite recursion.
         result &<<= ${word_bits}
-        result |= Self(_truncatingBits: source.nthWord(n))
+        result |= Self(_truncatingBits: source.word(at: n))
         n -= 1
       }
 
@@ -909,7 +909,7 @@ public struct ${Self}
   }
 
   @_transparent
-  public func nthWord(_ n: Word) -> UWord {
+  public func word(at n: Word) -> UWord {
     _precondition(n >= 0, "Negative word index")
     if _fastPath(n < countRepresentedWords) {
       let shift = UWord(n._storage) &* ${word_bits}
@@ -1031,15 +1031,15 @@ public struct DoubleWidth<
     fatalError()
   }
 
-  public func nthWord(_ n: Word) -> UWord {
+  public func word(at n: Word) -> UWord {
     if T.bitWidth < ${word_bits} || T.bitWidth % ${word_bits} != 0 {
-      fatalError("nthWord is not supported on this type")
+      fatalError("word(at:) is not supported on this type")
     }
     // TODO: move to Int128 just like init(_builtinIntegerLiteral:) ?
     let wordsInT = T.bitWidth / ${word_bits}
     return (n < wordsInT) ?
-      _storage.low.nthWord(n) :
-      _storage.high.nthWord(n - wordsInT)
+      _storage.low.word(at: n) :
+      _storage.high.word(at: n - wordsInT)
   }
 
   public static var isSigned: Bool {
@@ -1260,9 +1260,9 @@ public struct ${Self}
     fatalError()
   }
 
-  public func nthWord(_ n: Word) -> UWord {
+  public func word(at n: Word) -> UWord {
     _precondition(n >= 0, "Negative word index")
-    return _storage.nthWord(n)
+    return _storage.word(at: n)
   }
 
   public // transparent
@@ -1294,12 +1294,12 @@ public struct ${Self}
 extension FixedWidthInteger {
   // @_transparent
   public mutating func replaceUWord(_ n: Word, with newBits: UWord) -> Bool {
-    let flippedBits = nthWord(n) ^ newBits
+    let flippedBits = word(at: n) ^ newBits
     self ^= Self(_truncatingBits: flippedBits) << (${word_bits} * n)
-    if nthWord(n) != newBits {
+    if word(at: n) != newBits {
       _log("###### overflow replacing word \(n) with \(newBits.hex)")
     }
-    return nthWord(n) == newBits
+    return word(at: n) == newBits
   }
 
   /// a hex representation of every bit in the number
@@ -1315,7 +1315,7 @@ extension FixedWidthInteger {
       if nibbles % 4 == 0 && nibbles != 0 {
         result.insert("_", at: result.startIndex)
       }
-      let lowUWord = x.nthWord(0)
+      let lowUWord = x.word(at: 0)
       result.insert(
         hexDigits[Swift.Int(lowUWord._storage) & 0xF],
         at: result.startIndex
@@ -1755,18 +1755,18 @@ tests.test("Basics") {
   expectEqual(32, Int32.bitWidth)
 }
 
-tests.test("nthWord") {
+tests.test("word") {
   let x = UDWord(Word.max)
-  expectEqual(Word.max._lowUWord, x.nthWord(0))
-  expectEqual(0, x.nthWord(1))
+  expectEqual(Word.max._lowUWord, x.word(at: 0))
+  expectEqual(0, x.word(at: 1))
 
   let y = DWord(Word.min)
-  expectEqual(Word.min._lowUWord, y.nthWord(0))
-  expectEqual(~0, y.nthWord(1))
+  expectEqual(Word.min._lowUWord, y.word(at: 0))
+  expectEqual(~0, y.word(at: 1))
 
   let z = UWord(~Word.min) + 1
-  expectEqual(Word.min._lowUWord, z.nthWord(0))
-  expectEqual(0, z.nthWord(1))
+  expectEqual(Word.min._lowUWord, z.word(at: 0))
+  expectEqual(0, z.word(at: 1))
 }
 
 tests.test("DoubleWidthMultiply/UInt8") {
@@ -1877,16 +1877,16 @@ tests.test("DoubleWidth/minimumSignedRepresentationBitWidth") {
   expectEqual(-1, DoubleWidth<UInt8>.min.minimumSignedRepresentationBitWidth)
 }
 
-tests.test("DoubleWidth/UInt64/nthWord") {
+tests.test("DoubleWidth/UInt64/word") {
   let x = DoubleWidth<UInt64>((0xdeadbeeffeebdaed, 0xcafebabeebabefac))
 % if word_bits == 32:
-  expectEqual(x.nthWord(1), 0xcafebabe)
-  expectEqual(x.nthWord(3), 0xdeadbeef)
-  expectEqual(x.nthWord(4), 0)
+  expectEqual(x.word(at: 1), 0xcafebabe)
+  expectEqual(x.word(at: 3), 0xdeadbeef)
+  expectEqual(x.word(at: 4), 0)
 % elif word_bits == 64:
-  expectEqual(x.nthWord(0), 0xcafebabeebabefac)
-  expectEqual(x.nthWord(1), 0xdeadbeeffeebdaed)
-  expectEqual(x.nthWord(2), 0)
+  expectEqual(x.word(at: 0), 0xcafebabeebabefac)
+  expectEqual(x.word(at: 1), 0xdeadbeeffeebdaed)
+  expectEqual(x.word(at: 2), 0)
 % end
 }
 
