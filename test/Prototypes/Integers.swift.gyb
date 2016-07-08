@@ -491,7 +491,8 @@ ${comment}
   func ${x.name}(_ rhs: Self) -> Self
 % end
 
-  func doubleWidthMultiply(_ other: Self) -> (high: Self, low: Magnitude)
+  static func doubleWidthMultiply(_ lhs: Self, _ rhs: Self)
+    -> (high: Self, low: Magnitude)
 
   init(_truncatingBits bits: UWord)
 
@@ -947,12 +948,12 @@ public struct ${Self}
 % end
 
 %     dbits = bits*2
-  public func doubleWidthMultiply(_ other: ${Self})
+  public static func doubleWidthMultiply(_ self_: ${Self}, _ other: ${Self})
     -> (high: ${Self}, low: ${Self}.Magnitude) {
 %       if bits > 64:
     fatalError("${bits}-bit integer multiplication is not supported")
 %       else:
-    let lhs = Builtin.${z}ext_Int${bits}_Int${dbits}(self._storage)
+    let lhs = Builtin.${z}ext_Int${bits}_Int${dbits}(self_._storage)
     let rhs = Builtin.${z}ext_Int${bits}_Int${dbits}(other._storage)
 
     let res = Builtin.mul_Int${dbits}(lhs, rhs)
@@ -1093,7 +1094,7 @@ public struct DoubleWidth<
     let isNegative = (self < DoubleWidth<T>()) != (rhs < DoubleWidth<T>())
 
     func mul(_ x: Low, _ y: Low, _ carry: Low) -> (partial: Low, carry: Low) {
-      let pair = x.doubleWidthMultiply(y)
+      let pair = Low.doubleWidthMultiply(x, y)
       let t = DoubleWidth<Low>(pair) + DoubleWidth<Low>((0, carry))
       return (partial: t._storage.low, carry: t._storage.high)
     }
@@ -1155,7 +1156,7 @@ public struct DoubleWidth<
   }
 % end
 
-  public func doubleWidthMultiply(_ other: DoubleWidth<T>)
+  public static func doubleWidthMultiply(_ lhs: DoubleWidth<T>, _ other: DoubleWidth<T>)
     -> (high: DoubleWidth<T>, low: DoubleWidth<T>.Magnitude) {
       fatalError()
   }
@@ -1276,9 +1277,9 @@ public struct ${Self}
   }
 % end
 
-  public func doubleWidthMultiply(_ other: ${Self})
+  public static func doubleWidthMultiply(_ lhs: ${Self}, _ rhs: ${Self})
     -> (high: ${Self}, low: ${Self}.Magnitude) {
-    let (high: high, low: low) = _storage.doubleWidthMultiply(other._storage)
+    let (high: high, low: low) = DoubleWidth<${Half}>.doubleWidthMultiply(lhs._storage, rhs._storage)
     return (high: ${Self}(high), low: ${Self}.Magnitude(low))
   }
 
@@ -1772,7 +1773,7 @@ tests.test("word") {
 tests.test("DoubleWidthMultiply/UInt8") {
   let a: UInt8 = 42
   let b: UInt8 = 42
-  let res = a.doubleWidthMultiply(b)
+  let res = UInt8.doubleWidthMultiply(a, b)
   expectEqual(0x06, res.high)
   expectEqual(0xe4, res.low)
 }
@@ -1780,7 +1781,7 @@ tests.test("DoubleWidthMultiply/UInt8") {
 tests.test("DoubleWidthMultiply/Int8") {
   let a: Int8 = 42
   let b: Int8 = -42
-  let res = a.doubleWidthMultiply(b)
+  let res = Int8.doubleWidthMultiply(a, b)
   expectEqual(Int8(bitPattern: 0xf9), res.high)
   expectEqual(0x1c, res.low)
 }
@@ -1788,7 +1789,7 @@ tests.test("DoubleWidthMultiply/Int8") {
 tests.test("DoubleWidthMultiply/Int8/DoubleNegation") {
   let a: Int8 = -42
   let b: Int8 = -42
-  let res = a.doubleWidthMultiply(b)
+  let res = Int8.doubleWidthMultiply(a, b)
   expectEqual(0x06, res.high)
   expectEqual(0xe4, res.low)
 }
