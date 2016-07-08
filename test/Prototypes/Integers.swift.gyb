@@ -62,9 +62,9 @@ binaryArithmetic = {
 allBinaryArithmetic = binaryArithmetic['Arithmetic'] + binaryArithmetic['Integer']
 
 binaryBitwise = [
-    struct(operator='&', name='and'),
-    struct(operator='|', name='or'),
-    struct(operator='^', name='xor'),
+    struct(operator='&', name='bitwiseAnd', llvmName='and'),
+    struct(operator='|', name='bitwiseOr', llvmName='or'),
+    struct(operator='^', name='bitwiseXor', llvmName='xor'),
 ]
 
 maskingShifts = [
@@ -871,7 +871,7 @@ public struct ${Self}
   @_transparent
   public func ${x.name}(_ rhs: ${Self}) -> ${Self} {
     return ${Self}(
-      Builtin.${x.name}_Int${bits}(self._storage, rhs._storage))
+      Builtin.${x.llvmName}_Int${bits}(self._storage, rhs._storage))
   }
 % end
 
