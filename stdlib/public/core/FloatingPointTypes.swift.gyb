@@ -116,8 +116,7 @@ public struct ${Self} {
   /// Create an instance initialized to zero.
   @_transparent public
   init() {
-    let zero: Int64 = 0
-    self._value = Builtin.sitofp_Int64_FPIEEE${bits}(zero._value)
+    self = 0
   }
 
   @_transparent 
