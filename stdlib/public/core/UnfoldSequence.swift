@@ -104,10 +104,10 @@ public typealias UnfoldFirstSequence<T> = UnfoldSequence<T, (T?, Bool)>
 /// `sequence(first:next:)` and `sequence(state:next:)`.
 ///
 /// - SeeAlso: `sequence(first:next:)`, `sequence(state:next:)`
-public struct UnfoldSequence<Element, State> : Sequence, IteratorProtocol {
+public struct UnfoldSequence<Element, State> : Sequence, IteratorProtocol, ExpressibleByArrayLiteral {
   public mutating func next() -> Element? {
     guard !_done else { return nil }
-    if let elt = _next(&_state) {
+    if let elt = _next(&_state!) {
         return elt
     } else {
         _done = true
@@ -120,7 +120,14 @@ public struct UnfoldSequence<Element, State> : Sequence, IteratorProtocol {
     self._next = _next
   }
 
-  internal var _state: State
+  public init(arrayLiteral elements: Element...) {
+    _precondition(elements.count == 0)
+    self._state = nil
+    self._next = { _ in nil }
+    self._done = true
+  }
+
+  internal var _state: State?
   internal let _next: (inout State) -> Element?
   internal var _done = false
 }
