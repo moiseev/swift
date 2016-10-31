@@ -616,8 +616,15 @@ public prefix func ~ (rhs: ${Self}) -> ${Self} {
   return ${Self}(Builtin.xor_${BuiltinName}(rhs._value, mask._value))
 }
 
+extension ${Self} {
+  @_transparent
+  public static func == (lhs: ${Self}, rhs: ${Self}) -> Bool {
+    return Bool(Builtin.cmp_eq_${BuiltinName}(lhs._value, rhs._value))
+  }
+}
+
 % for op, name, comment in (
-%   ('==', 'eq', 'the two arguments have equal values'),
+%   #('==', 'eq', 'the two arguments have equal values'),
 %   ('!=', 'ne', 'the two arguments have unequal values'),
 %   ('<', sign + 'lt', 'the first argument is less than the second argument'),
 %   ('<=', sign + 'le', 'the first argument is less than or equal to the second argument'),
