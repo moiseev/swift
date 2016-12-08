@@ -151,6 +151,8 @@ syn match swiftChar /'\([^'\\]\|\\\(["'tnr0\\]\|x[0-9a-fA-F]\{2}\|u[0-9a-fA-F]\{
 syn match swiftPreproc /#\(\<file\>\|\<line\>\)/
 syn match swiftPreproc /^\s*#\(\<if\>\|\<else\>\|\<elseif\>\|\<endif\>\)/
 syn region swiftPreprocFalse start="^\s*#\<if\>\s\+\<false\>" end="^\s*#\(\<else\>\|\<elseif\>\|\<endif\>\)"
+syn region swiftPreprocTrue start="^\s*#\<if\>\s\+\<true\>" end="^\s*#\<endif\>" contains=swiftPreprocTrueElse
+syn region swiftPreprocTrueElse start="^\s*#\<else\>" end="^\s#\<endif\>" contained
 
 syn match swiftAttribute /@\<\w\+\>/ skipwhite nextgroup=swiftType
 
@@ -199,6 +201,8 @@ hi def link swiftLabel Operator
 hi def link swiftMutating Statement
 hi def link swiftPreproc PreCondit
 hi def link swiftPreprocFalse Comment
+hi def link swiftPreprocTrue PreCondit
+hi def link swiftPreprocTrueElse Comment
 hi def link swiftAttribute Type
 hi def link swiftTodo Todo
 hi def link swiftNil Constant
