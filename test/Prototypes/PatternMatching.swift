@@ -303,7 +303,52 @@ extension MatchAnyOneOf : CustomStringConvertible {
 }
 
 //  TODO: MatchNot
-//  TODO: CountableRangeMatch
+
+struct FunctionMatch<T : Equatable, Index : Comparable> : Pattern {
+  typealias Element = T
+
+  init(_ isMatch: @escaping (Element) -> Bool) {
+    self.isMatch = isMatch
+  }
+  fileprivate let isMatch: (Element) -> Bool
+
+  func matched<C: Collection>(atStartOf c: C) -> MatchResult<Index, Element>
+  where C.Index == Index, Element_<C> == Element
+  // The following requirements go away with upcoming generics features
+  , C.SubSequence : Collection, Element_<C.SubSequence> == Element
+  , C.SubSequence.Index == Index, C.SubSequence.SubSequence == C.SubSequence
+  {
+    if let element = c.first {
+      if isMatch(element) {
+        return .found(end: c.index(after: c.startIndex), data: element)
+      }
+    }
+    return .notFound(resumeAt: c.startIndex)
+  }
+}
+
+struct OneOfRangeMatch<T : Strideable, Index : Comparable> : Pattern, CustomStringConvertible
+  where T.Stride : SignedInteger {
+
+  typealias Element = T
+
+  init(_ range: CountableClosedRange<T>) {
+    self.description = "[\(range.lowerBound)-\(range.upperBound)]"
+    self.innerMatcher = FunctionMatch<T, Index>{ range.contains($0) }
+  }
+
+  fileprivate let innerMatcher: FunctionMatch<T, Index>
+  let description: String
+
+  func matched<C : Collection>(atStartOf c: C) -> MatchResult<Index, T>
+  where C.Index == Index, Element_<C> == Element
+  // The following requirements go away with upcoming generics features
+  , C.SubSequence : Collection, Element_<C.SubSequence> == Element
+  , C.SubSequence.Index == Index, C.SubSequence.SubSequence == C.SubSequence
+  {
+    return innerMatcher.matched(atStartOf: c)
+  }
+}
 
 
 infix operator .. : AdditionPrecedence
@@ -419,8 +464,23 @@ let digit = MatchAnyOneOf(
   %"0", %"1", %"2", %"3", %"4", %"5", %"6", %"7", %"8", %"9")
 
 let number = digit+
-
 number.searchTest(in: Array("42x".utf8))
+
+
+let lowercaseAlpha = OneOfRangeMatch<UTF8.CodeUnit, Array<UTF8.CodeUnit>.Index>(
+  UTF8.CodeUnit(ascii: "a")...UTF8.CodeUnit(ascii: "z"))
+let uppercaseAlpha = OneOfRangeMatch<UTF8.CodeUnit, Array<UTF8.CodeUnit>.Index>(
+  UTF8.CodeUnit(ascii: "A")...UTF8.CodeUnit(ascii: "Z"))
+let alpha = lowercaseAlpha | uppercaseAlpha
+
+let word = alpha*
+
+word.searchTest(in: Array("abc 42".utf8))
+
+
+let isA = FunctionMatch<UTF8.CodeUnit, Array<UTF8.CodeUnit>.Index> {
+  $0 == UTF8.CodeUnit(ascii: "a") }
+isA.searchTest(in: Array("abc".utf8))
 
 //===--- Parsing pairs ----------------------------------------------------===//
 // The beginnings of what it will take to wrap and indent m.data in the end of
