@@ -268,6 +268,43 @@ extension MatchOneOf : CustomStringConvertible {
   var description: String { return "\(matchers.0)|\(matchers.1)" }
 }
 
+struct MatchAnyOneOf<M : Pattern & CustomStringConvertible> : Pattern {
+
+  init(_ m0: M, _ matchers: M...) {
+    self.matchers = [m0] + matchers
+  }
+  fileprivate let matchers: [M]
+
+  typealias Element = M.Element
+  typealias Index = M.Index
+  typealias MatchData = M.MatchData
+
+  func matched<C: Collection>(atStartOf c: C) -> MatchResult<Index, MatchData>
+  where C.Index == Index, Element_<C> == Element
+  // The following requirements go away with upcoming generics features
+  , C.SubSequence : Collection, Element_<C.SubSequence> == Element
+  , C.SubSequence.Index == Index, C.SubSequence.SubSequence == C.SubSequence
+  {
+    for m in self.matchers {
+      switch m.matched(atStartOf: c) {
+      case .notFound(_): continue
+      case let match: return match
+      }
+    }
+    return .notFound(resumeAt: nil)
+  }
+}
+
+extension MatchAnyOneOf : CustomStringConvertible {
+  var description: String {
+    let body: String = self.matchers.map { $0.description }.joined()
+    return "[\(body)]"
+  }
+}
+
+//  TODO: MatchNot
+//  TODO: CountableRangeMatch
+
 
 infix operator .. : AdditionPrecedence
 postfix operator *
@@ -376,6 +413,14 @@ let fancyPattern
   .. (%__)* .. %"do"
 
 fancyPattern.searchTest(in: source)
+
+
+let digit = MatchAnyOneOf(
+  %"0", %"1", %"2", %"3", %"4", %"5", %"6", %"7", %"8", %"9")
+
+let number = digit+
+
+number.searchTest(in: Array("42x".utf8))
 
 //===--- Parsing pairs ----------------------------------------------------===//
 // The beginnings of what it will take to wrap and indent m.data in the end of
