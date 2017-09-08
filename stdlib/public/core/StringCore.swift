@@ -29,10 +29,13 @@ public struct _StringCore {
   //===--------------------------------------------------------------------===//
   // Internals
   public var _baseAddress: UnsafeMutableRawPointer?
+  @_versioned
   var _countAndFlags: UInt
   public var _owner: AnyObject?
 
   /// (private) create the implementation of a string from its component parts.
+  @_inlineable
+  @_versioned
   init(
     baseAddress: UnsafeMutableRawPointer?,
     _countAndFlags: UInt,
@@ -44,6 +47,8 @@ public struct _StringCore {
     _invariantCheck()
   }
 
+  @_inlineable
+  @_versioned
   func _invariantCheck() {
     // Note: this code is intentionally #if'ed out.  It unconditionally
     // accesses lazily initialized globals, and thus it is a performance burden
@@ -76,11 +81,15 @@ public struct _StringCore {
   }
 
   /// Bitmask for the count part of `_countAndFlags`.
+  @_inlineable
+  @_versioned
   var _countMask: UInt {
     return UInt.max &>> 2
   }
 
   /// Bitmask for the flags part of `_countAndFlags`.
+  @_inlineable
+  @_versioned
   var _flagMask: UInt {
     return ~_countMask
   }
@@ -88,6 +97,8 @@ public struct _StringCore {
   /// Value by which to multiply a 2nd byte fetched in order to
   /// assemble a UTF-16 code unit from our contiguous storage.  If we
   /// store ASCII, this will be zero.  Otherwise, it will be 0x100.
+  @_inlineable
+  @_versioned
   var _highByteMultiplier: UTF16.CodeUnit {
     return UTF16.CodeUnit(elementShift) &<< 8
   }
@@ -96,11 +107,15 @@ public struct _StringCore {
   /// storage.  Caveats: The string must have contiguous storage; the
   /// element may be 1 or 2 bytes wide, depending on elementWidth; the
   /// result may be null if the string is empty.
+  @_inlineable
+  @_versioned
   func _pointer(toElementAt n: Int) -> UnsafeMutableRawPointer {
     _sanityCheck(hasContiguousStorage && n >= 0 && n <= count)
     return _baseAddress! + (n &<< elementShift)
   }
 
+  @_inlineable
+  @_versioned
   static func _copyElements(
     _ srcStart: UnsafeMutableRawPointer, srcElementWidth: Int,
     dstStart: UnsafeMutableRawPointer, dstElementWidth: Int,
@@ -140,6 +155,7 @@ public struct _StringCore {
 
   //===--------------------------------------------------------------------===//
   // Initialization
+  @_inlineable
   public init(
     baseAddress: UnsafeMutableRawPointer?,
     count: Int,
@@ -162,6 +178,8 @@ public struct _StringCore {
   }
 
   /// Create a _StringCore that covers the entire length of the _StringBuffer.
+  @_inlineable
+  @_versioned
   init(_ buffer: _StringBuffer) {
     self = _StringCore(
       baseAddress: buffer.start,
@@ -175,6 +193,7 @@ public struct _StringCore {
   /// Create the implementation of an empty string.
   ///
   /// - Note: There is no null terminator in an empty string.
+  @_inlineable
   public init() {
     self._baseAddress = _emptyStringBase
     self._countAndFlags = 0
@@ -187,6 +206,7 @@ public struct _StringCore {
 
   /// The number of elements stored
   /// - Complexity: O(1).
+  @_inlineable
   public var count: Int {
     get {
       return Int(_countAndFlags & _countMask)
@@ -199,6 +219,8 @@ public struct _StringCore {
 
   /// Left shift amount to apply to an offset N so that when
   /// added to a UnsafeMutableRawPointer, it traverses N elements.
+  @_inlineable
+  @_versioned
   var elementShift: Int {
     return Int(_countAndFlags &>> (UInt.bitWidth - 1))
   }
@@ -207,10 +229,12 @@ public struct _StringCore {
   ///
   /// If the string does not have an ASCII buffer available (including the case
   /// when we don't have a utf16 buffer) then it equals 2.
+  @_inlineable
   public var elementWidth: Int {
     return elementShift &+ 1
   }
 
+  @_inlineable
   public var hasContiguousStorage: Bool {
 #if _runtime(_ObjC)
     return _fastPath(_baseAddress != nil)
@@ -220,20 +244,24 @@ public struct _StringCore {
   }
 
   /// Are we using an `NSString` for storage?
+  @_inlineable
   public var hasCocoaBuffer: Bool {
     return Int((_countAndFlags &<< 1)._value) < 0
   }
 
+  @_inlineable
   public var startASCII: UnsafeMutablePointer<UTF8.CodeUnit> {
     _sanityCheck(elementWidth == 1, "String does not contain contiguous ASCII")
     return _baseAddress!.assumingMemoryBound(to: UTF8.CodeUnit.self)
   }
 
   /// True iff a contiguous ASCII buffer available.
+  @_inlineable
   public var isASCII: Bool {
     return elementWidth == 1
   }
 
+  @_inlineable
   public var startUTF16: UnsafeMutablePointer<UTF16.CodeUnit> {
     _sanityCheck(
       count == 0 || elementWidth == 2,
@@ -241,6 +269,7 @@ public struct _StringCore {
     return _baseAddress!.assumingMemoryBound(to: UTF16.CodeUnit.self)
   }
 
+  @_inlineable
   public var asciiBuffer: UnsafeMutableBufferPointer<UTF8.CodeUnit>? {
     if elementWidth != 1 {
       return nil
@@ -249,6 +278,7 @@ public struct _StringCore {
   }
 
   /// the native _StringBuffer, if any, or `nil`.
+  @_inlineable
   public var nativeBuffer: _StringBuffer? {
     if !hasCocoaBuffer {
       return _owner.map {
@@ -260,6 +290,7 @@ public struct _StringCore {
 
 #if _runtime(_ObjC)
   /// the Cocoa String buffer, if any, or `nil`.
+  @_inlineable
   public var cocoaBuffer: _CocoaString? {
     if hasCocoaBuffer {
       return _owner
@@ -272,6 +303,7 @@ public struct _StringCore {
   // slicing
 
   /// Returns the given sub-`_StringCore`.
+  @_inlineable
   public subscript(bounds: Range<Int>) -> _StringCore {
     _precondition(
       bounds.lowerBound >= 0,
@@ -298,6 +330,7 @@ public struct _StringCore {
   }
 
   /// Get the Nth UTF-16 Code Unit stored.
+  @_inlineable
   @_versioned
   func _nthContiguous(_ position: Int) -> UTF16.CodeUnit {
     let p =
@@ -314,6 +347,7 @@ public struct _StringCore {
   }
 
   /// Get the Nth UTF-16 Code Unit stored.
+  @_inlineable
   public subscript(position: Int) -> UTF16.CodeUnit {
     @inline(__always)
     get {
@@ -336,6 +370,8 @@ public struct _StringCore {
     }
   }
 
+  @_inlineable
+  @_versioned
   var _unmanagedASCII : UnsafeBufferPointer<Unicode.ASCII.CodeUnit>? {
     @inline(__always)
     get {
@@ -350,6 +386,8 @@ public struct _StringCore {
     }
   }
   
+  @_inlineable
+  @_versioned
   var _unmanagedUTF16 : UnsafeBufferPointer<UTF16.CodeUnit>? {
     @inline(__always)
     get {
@@ -364,6 +402,8 @@ public struct _StringCore {
   }
   
   /// Write the string, in the given encoding, to output.
+  @_inlineable
+  @_versioned
   func encode<Encoding: Unicode.Encoding>(
     _ encoding: Encoding.Type,
     into processCodeUnit: (Encoding.CodeUnit) -> Void)
@@ -416,6 +456,8 @@ public struct _StringCore {
   /// - Note: If unsuccessful because of insufficient space in an
   ///   existing buffer, the suggested new capacity will at least double
   ///   the existing buffer's storage.
+  @_inlineable
+  @_versioned
   @inline(__always)
   mutating func _claimCapacity(
     _ newSize: Int, minElementWidth: Int) -> (Int, UnsafeMutableRawPointer?) {
@@ -449,6 +491,8 @@ public struct _StringCore {
   /// Effectively appends garbage to the String until it has newSize
   /// UTF-16 code units.  Returns a pointer to the garbage code units;
   /// you must immediately copy valid data into that storage.
+  @_inlineable
+  @_versioned
   @inline(__always)
   mutating func _growBuffer(
     _ newSize: Int, minElementWidth: Int
@@ -474,6 +518,8 @@ public struct _StringCore {
   /// capacity of at least newCapacity elements of at least the given
   /// width.  Effectively appends garbage to the String until it has
   /// newSize UTF-16 code units.
+  @_inlineable
+  @_versioned
   mutating func _copyInPlace(
     newSize: Int, newCapacity: Int, minElementWidth: Int
   ) {
@@ -516,6 +562,8 @@ public struct _StringCore {
   ///
   /// - Complexity: O(1) when amortized over repeated appends of equal
   ///   character values.
+  @_inlineable
+  @_versioned
   mutating func append(_ c: Unicode.Scalar) {
     let width = UTF16.width(c)
     append(
@@ -527,10 +575,13 @@ public struct _StringCore {
   /// Append `u` to `self`.
   ///
   /// - Complexity: Amortized O(1).
+  @_inlineable
   public mutating func append(_ u: UTF16.CodeUnit) {
     append(u, nil)
   }
 
+  @_inlineable
+  @_versioned
   mutating func append(_ u0: UTF16.CodeUnit, _ u1: UTF16.CodeUnit?) {
     _invariantCheck()
     let minBytesPerCodeUnit = u0 <= 0x7f ? 1 : 2
@@ -557,6 +608,8 @@ public struct _StringCore {
     _invariantCheck()
   }
 
+  @_inlineable
+  @_versioned
   @inline(never)
   mutating func append(_ rhs: _StringCore) {
     _invariantCheck()
@@ -589,6 +642,8 @@ public struct _StringCore {
   /// represented as pure ASCII.
   ///
   /// - Complexity: O(*n*) in the worst case.
+  @_inlineable
+  @_versioned
   func isRepresentableAsASCII() -> Bool {
     if _slowPath(!hasContiguousStorage) {
       return false
@@ -608,11 +663,13 @@ extension _StringCore : RandomAccessCollection {
   
   public typealias Indices = CountableRange<Int>
 
+  @_inlineable
   public // @testable
   var startIndex: Int {
     return 0
   }
 
+  @_inlineable
   public // @testable
   var endIndex: Int {
     return count
@@ -625,6 +682,7 @@ extension _StringCore : RangeReplaceableCollection {
   ///
   /// - Complexity: O(`bounds.count`) if `bounds.upperBound
   ///   == self.endIndex` and `newElements.isEmpty`, O(*n*) otherwise.
+  @_inlineable
   public mutating func replaceSubrange<C>(
     _ bounds: Range<Int>,
     with newElements: C
@@ -701,6 +759,7 @@ extension _StringCore : RangeReplaceableCollection {
     }
   }
 
+  @_inlineable
   public mutating func reserveCapacity(_ n: Int) {
     if _fastPath(!hasCocoaBuffer) {
       if _fastPath(isKnownUniquelyReferenced(&_owner)) {
@@ -720,6 +779,7 @@ extension _StringCore : RangeReplaceableCollection {
       minElementWidth: 1)
   }
 
+  @_inlineable
   public mutating func append<S : Sequence>(contentsOf s: S)
     where S.Element == UTF16.CodeUnit {
     var width = elementWidth
@@ -761,8 +821,11 @@ extension _StringCore : RangeReplaceableCollection {
 
 // Used to support a tighter invariant: all strings with contiguous
 // storage have a non-NULL base address.
+@_versioned
 var _emptyStringStorage: UInt32 = 0
 
+@_inlineable
+@_versioned
 var _emptyStringBase: UnsafeMutableRawPointer {
   return UnsafeMutableRawPointer(Builtin.addressof(&_emptyStringStorage))
 }

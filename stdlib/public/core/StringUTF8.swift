@@ -358,6 +358,8 @@ extension String {
     return result
   }
 
+  @_inlineable
+  @_versioned
   internal func _withUnsafeBufferPointerToUTF8<R>(
     _ body: (UnsafeBufferPointer<UTF8.CodeUnit>) throws -> R
   ) rethrows -> R {

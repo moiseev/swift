@@ -12,12 +12,16 @@
 
 @_versioned
 struct _StringBufferIVars {
+  @_inlineable
+  @_versioned
   internal init(_elementWidth: Int) {
     _sanityCheck(_elementWidth == 1 || _elementWidth == 2)
     usedEnd = nil
     capacityAndElementShift = _elementWidth - 1
   }
 
+  @_inlineable
+  @_versioned
   internal init(
     _usedEnd: UnsafeMutableRawPointer,
     byteCapacity: Int,
@@ -31,12 +35,18 @@ struct _StringBufferIVars {
 
   // This stored property should be stored at offset zero.  We perform atomic
   // operations on it using _HeapBuffer's pointer.
+  @_versioned
   var usedEnd: UnsafeMutableRawPointer?
 
+  @_versioned
   var capacityAndElementShift: Int
+  @_inlineable
+  @_versioned
   var byteCapacity: Int {
     return capacityAndElementShift & ~0x1
   }
+  @_inlineable
+  @_versioned
   var elementShift: Int {
     return capacityAndElementShift & 0x1
   }
@@ -54,10 +64,13 @@ public struct _StringBuffer {
   typealias HeapBufferStorage
     = _HeapBufferStorage<_StringBufferIVars, UTF16.CodeUnit>
 
+  @_inlineable
+  @_versioned
   init(_ storage: _Storage) {
     _storage = storage
   }
 
+  @_inlineable
   public init(capacity: Int, initialSize: Int, elementWidth: Int) {
     _sanityCheck(elementWidth == 1 || elementWidth == 2)
     _sanityCheck(initialSize <= capacity)
@@ -91,6 +104,8 @@ public struct _StringBuffer {
       = ((_storage.capacity - capacityBump) &<< 1) + elementShift
   }
 
+  @_inlineable
+  @_versioned
   static func fromCodeUnits<Input : Sequence, Encoding : _UnicodeEncoding>(
     _ input: Input, encoding: Encoding.Type, repairIllFormedSequences: Bool,
     minimumCapacity: Int = 0
@@ -141,12 +156,15 @@ public struct _StringBuffer {
   }
 
   /// A pointer to the start of this buffer's data area.
+  @_inlineable
   public // @testable
   var start: UnsafeMutableRawPointer {
     return UnsafeMutableRawPointer(_storage.baseAddress)
   }
 
   /// A past-the-end pointer for this buffer's stored data.
+  @_inlineable
+  @_versioned
   var usedEnd: UnsafeMutableRawPointer {
     get {
       return _storage.value.usedEnd!
@@ -156,26 +174,35 @@ public struct _StringBuffer {
     }
   }
 
+  @_inlineable
+  @_versioned
   var usedCount: Int {
     return (usedEnd - start) &>> elementShift
   }
 
   /// A past-the-end pointer for this buffer's available storage.
+  @_inlineable
+  @_versioned
   var capacityEnd: UnsafeMutableRawPointer {
     return start + _storage.value.byteCapacity
   }
 
   /// The number of elements that can be stored in this buffer.
+  @_inlineable
   public var capacity: Int {
     return _storage.value.byteCapacity &>> elementShift
   }
 
   /// 1 if the buffer stores UTF-16; 0 otherwise.
+  @_inlineable
+  @_versioned
   var elementShift: Int {
     return _storage.value.elementShift
   }
 
   /// The number of bytes per element.
+  @_inlineable
+  @_versioned
   var elementWidth: Int {
     return elementShift + 1
   }
@@ -185,6 +212,8 @@ public struct _StringBuffer {
   // reserveCapacity on String and subsequently use that capacity, in
   // two separate phases.  Operations with one-phase growth should use
   // "grow()," below.
+  @_inlineable
+  @_versioned
   func hasCapacity(
     _ cap: Int, forSubRange r: Range<UnsafeRawPointer>
   ) -> Bool {
@@ -194,9 +223,12 @@ public struct _StringBuffer {
     return cap + offset <= capacity
   }
 
+  @_inlineable
+  @_versioned
   var _anyObject: AnyObject? {
     return _storage.storage
   }
 
+  @_versioned
   var _storage: _Storage
 }
