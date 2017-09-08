@@ -11,9 +11,17 @@
 //===----------------------------------------------------------------------===//
 extension Character {
   public struct UnicodeScalarView {
+    @_versioned
     internal let _base: Character
+
+    @_inlineable
+    @_versioned
+    internal init(_base: Character) {
+      self._base = _base
+    }
   }
   
+  @_inlineable
   public var unicodeScalars : UnicodeScalarView {
     return UnicodeScalarView(_base: self)
   }
@@ -21,31 +29,53 @@ extension Character {
 
 extension Character.UnicodeScalarView {
   public struct Iterator {
+    @_versioned
     internal var _base: IndexingIterator<Character.UnicodeScalarView>
+
+    @_inlineable
+    @_versioned
+    internal init(_base: IndexingIterator<Character.UnicodeScalarView>) {
+      self._base = _base
+    }
   }
 }
     
 extension Character.UnicodeScalarView.Iterator : IteratorProtocol {
+  @_inlineable
   public mutating func next() -> UnicodeScalar? {
     return _base.next()
   }
 }
 
 extension Character.UnicodeScalarView : Sequence {
+  @_inlineable
   public func makeIterator() -> Iterator {
     return Iterator(_base: IndexingIterator(_elements: self))
   }
 }
 
 extension Character.UnicodeScalarView {
+  @_fixed_layout
   public struct Index {
+    @_versioned
     internal let _encodedOffset: Int
+    @_versioned
     internal let _scalar: Unicode.UTF16.EncodedScalar
+    @_versioned
     internal let _stride: UInt8
+
+    @_inlineable
+    @_versioned
+    internal init(_encodedOffset: Int, _scalar: Unicode.UTF16.EncodedScalar, _stride: UInt8) {
+      self._encodedOffset = _encodedOffset
+      self._scalar = _scalar
+      self._stride = _stride
+    }
   }
 }
 
 extension Character.UnicodeScalarView.Index : Equatable {
+  @_inlineable
   public static func == (
     lhs: Character.UnicodeScalarView.Index,
     rhs: Character.UnicodeScalarView.Index
@@ -55,6 +85,7 @@ extension Character.UnicodeScalarView.Index : Equatable {
 }
 
 extension Character.UnicodeScalarView.Index : Comparable {
+  @_inlineable
   public static func < (
     lhs: Character.UnicodeScalarView.Index,
     rhs: Character.UnicodeScalarView.Index
@@ -64,6 +95,7 @@ extension Character.UnicodeScalarView.Index : Comparable {
 }
 
 extension Character.UnicodeScalarView : Collection {
+  @_inlineable
   public var startIndex: Index {
     return index(
       after: Index(
@@ -73,6 +105,7 @@ extension Character.UnicodeScalarView : Collection {
       ))
   }
   
+  @_inlineable
   public var endIndex: Index {
     return Index(
         _encodedOffset: _base._smallUTF16?.count ?? _base._largeUTF16!.count,
@@ -81,6 +114,7 @@ extension Character.UnicodeScalarView : Collection {
       )
   }
   
+  @_inlineable
   public func index(after i: Index) -> Index {
     var parser = Unicode.UTF16.ForwardParser()
     let startOfNextScalar = i._encodedOffset + numericCast(i._stride)
@@ -113,12 +147,14 @@ extension Character.UnicodeScalarView : Collection {
     }
   }
   
+  @_inlineable
   public subscript(_ i: Index) -> UnicodeScalar {
     return Unicode.UTF16.decode(i._scalar)
   }
 }
 
 extension Character.UnicodeScalarView : BidirectionalCollection {
+  @_inlineable
   public func index(before i: Index) -> Index {
     var parser = Unicode.UTF16.ReverseParser()
     let r: Unicode.ParseResult<Unicode.UTF16.EncodedScalar>
