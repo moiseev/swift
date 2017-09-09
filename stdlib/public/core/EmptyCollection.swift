@@ -20,9 +20,11 @@
 /// An iterator that never produces an element.
 public struct EmptyIterator<Element> : IteratorProtocol, Sequence {
   /// Creates an instance.
+  @_inlineable
   public init() {}
 
   /// Returns `nil`, indicating that there are no more elements.
+  @_inlineable
   public mutating func next() -> Element? {
     return nil
   }
@@ -41,14 +43,17 @@ public struct EmptyCollection<Element> :
   public typealias SubSequence = EmptyCollection<Element>
 
   /// Creates an instance.
+  @_inlineable
   public init() {}
 
   /// Always zero, just like `endIndex`.
+  @_inlineable
   public var startIndex: Index {
     return 0
   }
 
   /// Always zero, just like `startIndex`.
+  @_inlineable
   public var endIndex: Index {
     return 0
   }
@@ -57,6 +62,7 @@ public struct EmptyCollection<Element> :
   ///
   /// `EmptyCollection` does not have any element indices, so it is not
   /// possible to advance indices.
+  @_inlineable
   public func index(after i: Index) -> Index {
     _preconditionFailure("EmptyCollection can't advance indices")
   }
@@ -65,11 +71,13 @@ public struct EmptyCollection<Element> :
   ///
   /// `EmptyCollection` does not have any element indices, so it is not
   /// possible to advance indices.
+  @_inlineable
   public func index(before i: Index) -> Index {
     _preconditionFailure("EmptyCollection can't advance indices")
   }
 
   /// Returns an empty iterator.
+  @_inlineable
   public func makeIterator() -> EmptyIterator<Element> {
     return EmptyIterator()
   }
@@ -77,6 +85,7 @@ public struct EmptyCollection<Element> :
   /// Accesses the element at the given position.
   ///
   /// Must never be called, since this collection is always empty.
+  @_inlineable
   public subscript(position: Index) -> Element {
     get {
       _preconditionFailure("Index out of range")
@@ -86,6 +95,7 @@ public struct EmptyCollection<Element> :
     }
   }
 
+  @_inlineable
   public subscript(bounds: Range<Index>) -> EmptyCollection<Element> {
     get {
       _debugPrecondition(bounds.lowerBound == 0 && bounds.upperBound == 0,
@@ -99,15 +109,18 @@ public struct EmptyCollection<Element> :
   }
 
   /// The number of elements (always zero).
+  @_inlineable
   public var count: Int {
     return 0
   }
 
+  @_inlineable
   public func index(_ i: Index, offsetBy n: IndexDistance) -> Index {
     _debugPrecondition(i == startIndex && n == 0, "Index out of range")
     return i
   }
 
+  @_inlineable
   public func index(
     _ i: Index, offsetBy n: IndexDistance, limitedBy limit: Index
   ) -> Index? {
@@ -117,18 +130,21 @@ public struct EmptyCollection<Element> :
   }
 
   /// The distance between two indexes (always zero).
+  @_inlineable
   public func distance(from start: Index, to end: Index) -> IndexDistance {
     _debugPrecondition(start == 0, "From must be startIndex (or endIndex)")
     _debugPrecondition(end == 0, "To must be endIndex (or startIndex)")
     return 0
   }
 
+  @_inlineable
   public func _failEarlyRangeCheck(_ index: Index, bounds: Range<Index>) {
     _debugPrecondition(index == 0, "out of bounds")
     _debugPrecondition(bounds == Range(indices),
       "invalid bounds for an empty collection")
   }
 
+  @_inlineable
   public func _failEarlyRangeCheck(
     _ range: Range<Index>, bounds: Range<Index>
   ) {
@@ -142,6 +158,7 @@ public struct EmptyCollection<Element> :
 }
 
 extension EmptyCollection : Equatable {
+  @_inlineable
   public static func == (
     lhs: EmptyCollection<Element>, rhs: EmptyCollection<Element>
   ) -> Bool {

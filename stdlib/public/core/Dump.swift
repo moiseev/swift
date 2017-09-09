@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 
 /// Dumps an object's contents using its mirror to the specified output stream.
+@_inlineable
 @discardableResult
 @_semantics("optimize.sil.specialize.generic.never")
 public func dump<T, TargetStream : TextOutputStream>(
@@ -37,6 +38,7 @@ public func dump<T, TargetStream : TextOutputStream>(
 }
 
 /// Dumps an object's contents using its mirror to standard output.
+@_inlineable
 @discardableResult
 @_semantics("optimize.sil.specialize.generic.never")
 public func dump<T>(
@@ -57,6 +59,8 @@ public func dump<T>(
 }
 
 /// Dump an object's contents. User code should use dump().
+@_inlineable
+@_versioned
 @_semantics("optimize.sil.specialize.generic.never")
 internal func _dump_unlocked<TargetStream : TextOutputStream>(
   _ value: Any,
@@ -156,6 +160,8 @@ internal func _dump_unlocked<TargetStream : TextOutputStream>(
 
 /// Dump information about an object's superclass, given a mirror reflecting
 /// that superclass.
+@_inlineable
+@_versioned
 @_semantics("optimize.sil.specialize.generic.never")
 internal func _dumpSuperclass_unlocked<TargetStream : TextOutputStream>(
   mirror: Mirror,
