@@ -109,7 +109,9 @@ extension String {
     @_versioned
     internal let _legacyOffsets: (start: Int8, end: Int8)
 
-    init(_ _core: _StringCore,
+    @_inlineable
+    @_versioned
+    internal init(_ _core: _StringCore,
       legacyOffsets: (Int, Int) = (0, 0)
     ) {
       self._core = _core
@@ -123,6 +125,7 @@ extension String {
     /// nonempty.
     ///
     /// If the UTF-8 view is empty, `startIndex` is equal to `endIndex`.
+    @_inlineable
     public var startIndex: Index {
       let r = _index(atEncodedOffset: _core.startIndex)
       if _legacyOffsets.start == 0 { return r }
@@ -133,6 +136,7 @@ extension String {
     /// greater than the last valid subscript argument.
     ///
     /// In an empty UTF-8 view, `endIndex` is equal to `startIndex`.
+    @_inlineable
     public var endIndex: Index {
       _sanityCheck(_legacyOffsets.end >= -3 && _legacyOffsets.end <= 0,
         "out of bounds legacy end")
@@ -149,6 +153,7 @@ extension String {
       }
     }
 
+    @_inlineable
     @_versioned
     internal func _index(atEncodedOffset n: Int) -> Index {
       if _fastPath(_core.isASCII) { return Index(encodedOffset: n) }
@@ -179,6 +184,7 @@ extension String {
     /// Returns the next consecutive position after `i`.
     ///
     /// - Precondition: The next position is representable.
+    @_inlineable
     @inline(__always)
     public func index(after i: Index) -> Index {
       if _fastPath(_core.isASCII) {
@@ -229,6 +235,7 @@ extension String {
       return _index(atEncodedOffset: j.encodedOffset + scalarLength16)
     }
 
+    @_inlineable
     public func index(before i: Index) -> Index {
       if _fastPath(_core.isASCII) {
         precondition(i.encodedOffset > 0)
@@ -264,6 +271,7 @@ extension String {
       )
     }
     
+    @_inlineable
     public func distance(from i: Index, to j: Index) -> IndexDistance {
       if _fastPath(_core.isASCII) {
         return j.encodedOffset - i.encodedOffset
@@ -272,6 +280,7 @@ extension String {
         ? _forwardDistance(from: i, to: j) : -_forwardDistance(from: j, to: i)
     }
 
+    @_inlineable
     @_versioned
     @inline(__always)
     internal func _forwardDistance(from i: Index, to j: Index) -> IndexDistance {
@@ -295,6 +304,7 @@ extension String {
     ///
     /// - Parameter position: A valid index of the view. `position`
     ///   must be less than the view's end index.
+    @_inlineable
     public subscript(position: Index) -> UTF8.CodeUnit {
       @inline(__always)
       get {
@@ -315,16 +325,19 @@ extension String {
       }
     }
 
+    @_inlineable
     public var description: String {
       return String(_core)
     }
 
+    @_inlineable
     public var debugDescription: String {
       return "UTF8View(\(self.description.debugDescription))"
     }
   }
 
   /// A UTF-8 encoding of `self`.
+  @_inlineable
   public var utf8: UTF8View {
     get {
       return UTF8View(self._core)
@@ -348,6 +361,7 @@ extension String {
   ///         print(strlen(ptr.baseAddress!))
   ///     }
   ///     // Prints "6"
+  @_inlineable
   public var utf8CString: ContiguousArray<CChar> {
     var result = ContiguousArray<CChar>()
     result.reserveCapacity(utf8.count + 1)
@@ -393,6 +407,7 @@ extension String {
   /// slice of the `picnicGuest.utf8` view.
   ///
   /// - Parameter utf8: A UTF-8 code sequence.
+  @_inlineable
   @available(swift, deprecated: 3.2, obsoleted: 4.0)
   public init?(_ utf8: UTF8View) {
     if utf8.startIndex._transcodedOffset != 0
@@ -422,6 +437,7 @@ extension String {
   }
 
   /// Creates a string corresponding to the given sequence of UTF-8 code units.
+  @_inlineable
   @available(swift, introduced: 4.0)
   public init(_ utf8: UTF8View) {
     self = String(utf8._core)
@@ -432,14 +448,19 @@ extension String {
 }
 
 extension String.UTF8View : _SwiftStringView {
-  var _persistentContent : String { return String(self._core) }
+  @_inlineable
+  @_versioned
+  internal var _persistentContent : String { return String(self._core) }
 }
 
 extension String.UTF8View {
   public struct Iterator {
-    typealias _OutputBuffer = UInt64
+    internal typealias _OutputBuffer = UInt64
+    @_versioned
     internal let _source: _StringCore
+    @_versioned
     internal var _sourceIndex: Int
+    @_versioned
     internal var _buffer: _OutputBuffer
   }
   public func makeIterator() -> Iterator {
@@ -448,12 +469,15 @@ extension String.UTF8View {
 }
 
 extension String.UTF8View.Iterator : IteratorProtocol {
+  @_inlineable
+  @_versioned
   internal init(_ source: _StringCore) {
     _source = source
     _sourceIndex = 0
     _buffer = 0
   }
   
+  @_inlineable
   public mutating func next() -> Unicode.UTF8.CodeUnit? {
     if _fastPath(_buffer != 0) {
       let r = UInt8(truncatingIfNeeded: _buffer) &- 1
@@ -483,6 +507,8 @@ extension String.UTF8View.Iterator : IteratorProtocol {
     return _next(refillingFrom: _source)
   }
 
+  @_inlineable
+  @_versioned
   internal mutating func _next<Source: Collection>(
     refillingFrom source: Source
   ) -> Unicode.UTF8.CodeUnit?
@@ -531,6 +557,7 @@ extension String.UTF8View.Iterator : IteratorProtocol {
 }
 
 extension String.UTF8View {
+  @_inlineable
   public var count: Int {
     if _fastPath(_core.isASCII) { return _core.count }
     let b = _core._unmanagedUTF16
@@ -541,6 +568,8 @@ extension String.UTF8View {
     return _count(fromUTF16: self._core)
   }
 
+  @_inlineable
+  @_versioned
   internal func _count<Source: Sequence>(fromUTF16 source: Source) -> Int
   where Source.Element == Unicode.UTF16.CodeUnit
   {
@@ -599,6 +628,7 @@ extension String.UTF8View.Index {
   /// - Parameters:
   ///   - sourcePosition: A position in a `String` or one of its views.
   ///   - target: The `UTF8View` in which to find the new position.
+  @_inlineable
   public init?(_ sourcePosition: String.Index, within target: String.UTF8View) {
     switch sourcePosition._cache {
     case .utf8:
@@ -616,12 +646,14 @@ extension String.UTF8View.Index {
 // Reflection
 extension String.UTF8View : CustomReflectable {
   /// Returns a mirror that reflects the UTF-8 view of a string.
+  @_inlineable
   public var customMirror: Mirror {
     return Mirror(self, unlabeledChildren: self)
   }
 }
 
 extension String.UTF8View : CustomPlaygroundQuickLookable {
+  @_inlineable
   public var customPlaygroundQuickLook: PlaygroundQuickLook {
     return .text(description)
   }
@@ -629,18 +661,21 @@ extension String.UTF8View : CustomPlaygroundQuickLookable {
 
 // backward compatibility for index interchange.  
 extension String.UTF8View {
+  @_inlineable
   @available(
     swift, obsoleted: 4.0,
     message: "Any String view index conversion can fail in Swift 4; please unwrap the optional index")
   public func index(after i: Index?) -> Index {
     return index(after: i!)
   }
+  @_inlineable
   @available(
     swift, obsoleted: 4.0,
     message: "Any String view index conversion can fail in Swift 4; please unwrap the optional index")
   public func index(_ i: Index?, offsetBy n: IndexDistance) -> Index {
     return index(i!, offsetBy: n)
   }
+  @_inlineable
   @available(
     swift, obsoleted: 4.0,
     message: "Any String view index conversion can fail in Swift 4; please unwrap the optional indices")
@@ -648,6 +683,7 @@ extension String.UTF8View {
     from i: Index?, to j: Index?) -> IndexDistance {
     return distance(from: i!, to: j!)
   }
+  @_inlineable
   @available(
     swift, obsoleted: 4.0,
     message: "Any String view index conversion can fail in Swift 4; please unwrap the optional index")
@@ -667,11 +703,13 @@ extension String.UTF8View {
 extension String.UTF8View {
   public typealias SubSequence = Substring.UTF8View
   
+  @_inlineable
   @available(swift, introduced: 4)
   public subscript(r: Range<Index>) -> String.UTF8View.SubSequence {
     return String.UTF8View.SubSequence(self, _bounds: r)
   }
 
+  @_inlineable
   @available(swift, obsoleted: 4)
   public subscript(r: Range<Index>) -> String.UTF8View {
     if r.upperBound._transcodedOffset == 0 {
@@ -691,6 +729,7 @@ extension String.UTF8View {
         r.upperBound._transcodedOffset - scalarLength8))
   }
 
+  @_inlineable
   @available(swift, obsoleted: 4)
   public subscript(bounds: ClosedRange<Index>) -> String.UTF8View {
     return self[bounds.relative(to: self)]

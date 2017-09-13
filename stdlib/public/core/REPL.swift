@@ -11,12 +11,14 @@
 //===----------------------------------------------------------------------===//
 
 /// Print a string as is to stdout.
+@_inlineable
 public // COMPILER_INTRINSIC
 func _replPrintLiteralString(_ text: String) {
   print(text, terminator: "")
 }
 
 /// Print the debug representation of `value`, followed by a newline.
+@_inlineable
 @inline(never)
 @_semantics("stdlib_binary_only")
 public // COMPILER_INTRINSIC

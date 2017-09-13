@@ -601,6 +601,14 @@ internal struct _TeeStream<
   L : TextOutputStream,
   R : TextOutputStream
 > : TextOutputStream {
+
+  @_inlineable
+  @_versioned
+  internal init(left: L, right: R) {
+    self.left = left
+    self.right = right
+  }
+
   @_versioned
   internal var left: L
   @_versioned

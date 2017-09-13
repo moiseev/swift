@@ -120,6 +120,7 @@ extension String {
 
     /// The position of the first code unit if the `String` is
     /// nonempty; identical to `endIndex` otherwise.
+    @_inlineable
     public var startIndex: Index {
       return Index(encodedOffset: _offset)
     }
@@ -128,40 +129,58 @@ extension String {
     /// the last valid subscript argument.
     ///
     /// In an empty UTF-16 view, `endIndex` is equal to `startIndex`.
+    @_inlineable
     public var endIndex: Index {
       return Index(encodedOffset: _offset + _length)
     }
 
     public struct Indices {
+      @_inlineable
+      @_versioned
+      internal init(
+        _elements: String.UTF16View, _startIndex: Index, _endIndex: Index
+      ) {
+        self._elements = _elements
+        self._startIndex = _startIndex
+        self._endIndex = _endIndex
+      }
+      @_versioned
       internal var _elements: String.UTF16View
+      @_versioned
       internal var _startIndex: Index
+      @_versioned
       internal var _endIndex: Index
     }
 
+    @_inlineable
     public var indices: Indices {
       return Indices(
         _elements: self, startIndex: startIndex, endIndex: endIndex)
     }
 
     // TODO: swift-3-indexing-model - add docs
+    @_inlineable
     public func index(after i: Index) -> Index {
       // FIXME: swift-3-indexing-model: range check i?
       return Index(encodedOffset: _unsafePlus(i.encodedOffset, 1))
     }
 
     // TODO: swift-3-indexing-model - add docs
+    @_inlineable
     public func index(before i: Index) -> Index {
       // FIXME: swift-3-indexing-model: range check i?
       return Index(encodedOffset: _unsafeMinus(i.encodedOffset, 1))
     }
 
     // TODO: swift-3-indexing-model - add docs
+    @_inlineable
     public func index(_ i: Index, offsetBy n: IndexDistance) -> Index {
       // FIXME: swift-3-indexing-model: range check i?
       return Index(encodedOffset: i.encodedOffset.advanced(by: n))
     }
 
     // TODO: swift-3-indexing-model - add docs
+    @_inlineable
     public func index(
       _ i: Index, offsetBy n: IndexDistance, limitedBy limit: Index
     ) -> Index? {
@@ -174,12 +193,15 @@ extension String {
     }
 
     // TODO: swift-3-indexing-model - add docs
+    @_inlineable
     public func distance(from start: Index, to end: Index) -> IndexDistance {
       // FIXME: swift-3-indexing-model: range check start and end?
       return start.encodedOffset.distance(to: end.encodedOffset)
     }
 
-    func _internalIndex(at i: Int) -> Int {
+    @_inlineable
+    @_versioned
+    internal func _internalIndex(at i: Int) -> Int {
       return _core.startIndex + i
     }
 
@@ -195,6 +217,7 @@ extension String {
     ///
     /// - Parameter position: A valid index of the view. `position` must be
     ///   less than the view's end index.
+    @_inlineable
     public subscript(i: Index) -> UTF16.CodeUnit {
       _precondition(i >= startIndex && i < endIndex,
           "out-of-range access on a UTF16View")
@@ -244,32 +267,42 @@ extension String {
     }
 #endif
 
+    @_inlineable
+    @_versioned
     internal init(_ _core: _StringCore) {
       self.init(_core, offset: 0, length: _core.count)
     }
 
+    @_inlineable
+    @_versioned
     internal init(_ _core: _StringCore, offset: Int, length: Int) {
       self._offset = offset
       self._length = length
       self._core = _core
     }
 
+    @_inlineable
     public var description: String {
       let start = _internalIndex(at: _offset)
       let end = _internalIndex(at: _offset + _length)
       return String(_core[start..<end])
     }
 
+    @_inlineable
     public var debugDescription: String {
       return "StringUTF16(\(self.description.debugDescription))"
     }
 
+    @_versioned
     internal var _offset: Int
+    @_versioned
     internal var _length: Int
+    @_versioned
     internal let _core: _StringCore
   }
 
   /// A UTF-16 encoding of `self`.
+  @_inlineable
   public var utf16: UTF16View {
     get {
       return UTF16View(_core)
@@ -297,6 +330,7 @@ extension String {
   /// slice of the `picnicGuest.utf16` view.
   ///
   /// - Parameter utf16: A UTF-16 code sequence.
+  @_inlineable
   @available(swift, deprecated: 3.2, obsoleted: 4.0)
   public init?(_ utf16: UTF16View) {
     // Attempt to recover the whole string, the better to implement the actual
@@ -321,6 +355,7 @@ extension String {
   }
 
   /// Creates a string corresponding to the given sequence of UTF-16 code units.
+  @_inlineable
   @available(swift, introduced: 4.0)
   public init(_ utf16: UTF16View) {
     self = String(utf16._core)
@@ -331,8 +366,12 @@ extension String {
 }
 
 extension String.UTF16View : _SwiftStringView {
-  var _ephemeralContent : String { return _persistentContent }
-  var _persistentContent : String { return String(self._core) }
+  @_inlineable
+  @_versioned
+  internal var _ephemeralContent : String { return _persistentContent }
+  @_inlineable
+  @_versioned
+  internal var _persistentContent : String { return String(self._core) }
 }
 
 // Index conversions
@@ -362,6 +401,7 @@ extension String.UTF16View.Index {
   ///   - sourcePosition: A position in at least one of the views of the string
   ///     shared by `target`.
   ///   - target: The `UTF16View` in which to find the new position.
+  @_inlineable
   public init?(
     _ sourcePosition: String.Index, within target: String.UTF16View
   ) {
@@ -392,6 +432,7 @@ extension String.UTF16View.Index {
   ///   position in `unicodeScalars`, this method returns `nil`. For example,
   ///   an attempt to convert the position of a UTF-16 trailing surrogate
   ///   returns `nil`.
+  @_inlineable
   public func samePosition(
     in unicodeScalars: String.UnicodeScalarView
   ) -> String.UnicodeScalarIndex? {
@@ -402,12 +443,14 @@ extension String.UTF16View.Index {
 // Reflection
 extension String.UTF16View : CustomReflectable {
   /// Returns a mirror that reflects the UTF-16 view of a string.
+  @_inlineable
   public var customMirror: Mirror {
     return Mirror(self, unlabeledChildren: self)
   }
 }
 
 extension String.UTF16View : CustomPlaygroundQuickLookable {
+  @_inlineable
   public var customPlaygroundQuickLook: PlaygroundQuickLook {
     return .text(description)
   }
@@ -419,6 +462,8 @@ extension String.UTF16View.Indices : BidirectionalCollection {
   public typealias Indices = String.UTF16View.Indices
   public typealias SubSequence = String.UTF16View.Indices
 
+  @_inlineable
+  @_versioned
   internal init(
     _elements: String.UTF16View,
     startIndex: Index,
@@ -429,23 +474,28 @@ extension String.UTF16View.Indices : BidirectionalCollection {
     self._endIndex = endIndex
   }
 
+  @_inlineable
   public var startIndex: Index {
     return _startIndex
   }
 
+  @_inlineable
   public var endIndex: Index {
     return _endIndex
   }
 
+  @_inlineable
   public var indices: Indices {
     return self
   }
 
+  @_inlineable
   public subscript(i: Index) -> Index {
     // FIXME: swift-3-indexing-model: range check.
     return i
   }
 
+  @_inlineable
   public subscript(bounds: Range<Index>) -> String.UTF16View.Indices {
     // FIXME: swift-3-indexing-model: range check.
     return String.UTF16View.Indices(
@@ -454,31 +504,37 @@ extension String.UTF16View.Indices : BidirectionalCollection {
       endIndex: bounds.upperBound)
   }
 
+  @_inlineable
   public func index(after i: Index) -> Index {
     // FIXME: swift-3-indexing-model: range check.
     return _elements.index(after: i)
   }
 
+  @_inlineable
   public func formIndex(after i: inout Index) {
     // FIXME: swift-3-indexing-model: range check.
     _elements.formIndex(after: &i)
   }
 
+  @_inlineable
   public func index(before i: Index) -> Index {
     // FIXME: swift-3-indexing-model: range check.
     return _elements.index(before: i)
   }
 
+  @_inlineable
   public func formIndex(before i: inout Index) {
     // FIXME: swift-3-indexing-model: range check.
     _elements.formIndex(before: &i)
   }
 
+  @_inlineable
   public func index(_ i: Index, offsetBy n: IndexDistance) -> Index {
     // FIXME: swift-3-indexing-model: range check i?
     return _elements.index(i, offsetBy: n)
   }
 
+  @_inlineable
   public func index(
     _ i: Index, offsetBy n: IndexDistance, limitedBy limit: Index
   ) -> Index? {
@@ -487,6 +543,7 @@ extension String.UTF16View.Indices : BidirectionalCollection {
   }
 
   // TODO: swift-3-indexing-model - add docs
+  @_inlineable
   public func distance(from start: Index, to end: Index) -> IndexDistance {
     // FIXME: swift-3-indexing-model: range check start and end?
     return _elements.distance(from: start, to: end)
@@ -495,12 +552,14 @@ extension String.UTF16View.Indices : BidirectionalCollection {
 
 // backward compatibility for index interchange.  
 extension String.UTF16View {
+  @_inlineable
   @available(
     swift, obsoleted: 4.0,
     message: "Any String view index conversion can fail in Swift 4; please unwrap the optional index")
   public func index(after i: Index?) -> Index {
     return index(after: i!)
   }
+  @_inlineable
   @available(
     swift, obsoleted: 4.0,
     message: "Any String view index conversion can fail in Swift 4; please unwrap the optional index")
@@ -508,12 +567,14 @@ extension String.UTF16View {
     _ i: Index?, offsetBy n: IndexDistance) -> Index {
     return index(i!, offsetBy: n)
   }
+  @_inlineable
   @available(
     swift, obsoleted: 4.0,
     message: "Any String view index conversion can fail in Swift 4; please unwrap the optional indices")
   public func distance(from i: Index?, to j: Index?) -> IndexDistance {
     return distance(from: i!, to: j!)
   }
+  @_inlineable
   @available(
     swift, obsoleted: 4.0,
     message: "Any String view index conversion can fail in Swift 4; please unwrap the optional index")
@@ -533,11 +594,13 @@ extension String.UTF16View {
 extension String.UTF16View {
   public typealias SubSequence = Substring.UTF16View
 
+  @_inlineable
   @available(swift, introduced: 4)
   public subscript(r: Range<Index>) -> String.UTF16View.SubSequence {
     return String.UTF16View.SubSequence(self, _bounds: r)
   }
 
+  @_inlineable
   @available(swift, obsoleted: 4)
   public subscript(bounds: Range<Index>) -> String.UTF16View {
     return String.UTF16View(
@@ -546,6 +609,7 @@ extension String.UTF16View {
       length: bounds.upperBound.encodedOffset - bounds.lowerBound.encodedOffset)
   }
 
+  @_inlineable
   @available(swift, obsoleted: 4)
   public subscript(bounds: ClosedRange<Index>) -> String.UTF16View {
     return self[bounds.relative(to: self)]

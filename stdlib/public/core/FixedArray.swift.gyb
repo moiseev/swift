@@ -21,6 +21,8 @@
 
 % for N in sizes:
 
+@_versioned
+@_fixed_layout
 internal struct _FixedArray${N}<T> {
   // ABI TODO: The has assumptions about tuple layout in the ABI, namely that
   // they are laid out contiguously and individually addressable (i.e. strided).

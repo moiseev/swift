@@ -549,6 +549,7 @@ internal class _SwiftNativeNSArray {
 internal class _SwiftNativeNSDictionary {
   @_inlineable
   @_versioned
+  @objc
   internal init() {}
 }
 
@@ -557,6 +558,7 @@ internal class _SwiftNativeNSDictionary {
 internal class _SwiftNativeNSSet {
   @_inlineable
   @_versioned
+  @objc
   internal init() {}
 }
 

@@ -12,6 +12,7 @@
 extension String {
   /// A position of a character or code unit in a string.
   public struct Index {
+    @_versioned
     internal var _compoundOffset : UInt64
     @_versioned
     internal var _cache: _Cache
@@ -29,31 +30,37 @@ extension String {
 
 /// Convenience accessors
 extension String.Index._Cache {
+  @_inlineable
   @_versioned
-  var utf16: Void? {
+  internal var utf16: Void? {
     if case .utf16 = self { return () } else { return nil }
   }
+  @_inlineable
   @_versioned
-  var utf8: String.Index._UTF8Buffer? {
+  internal var utf8: String.Index._UTF8Buffer? {
     if case .utf8(let r) = self { return r } else { return nil }
   }
+  @_inlineable
   @_versioned
-  var character: UInt16? {
+  internal var character: UInt16? {
     if case .character(let r) = self { return r } else { return nil }
   }
+  @_inlineable
   @_versioned
-  var unicodeScalar: UnicodeScalar? {
+  internal var unicodeScalar: UnicodeScalar? {
     if case .unicodeScalar(let r) = self { return r } else { return nil }
   }
 }
 
 extension String.Index : Equatable {
+  @_inlineable
   public static func == (lhs: String.Index, rhs: String.Index) -> Bool {
     return lhs._compoundOffset == rhs._compoundOffset
   }
 }
 
 extension String.Index : Comparable {
+  @_inlineable
   public static func < (lhs: String.Index, rhs: String.Index) -> Bool {
     return lhs._compoundOffset < rhs._compoundOffset
   }
@@ -65,30 +72,40 @@ extension String.Index {
   /// Creates a new index at the specified UTF-16 offset.
   ///
   /// - Parameter offset: An offset in UTF-16 code units.
+  @_inlineable
   public init(encodedOffset offset: Int) {
     _compoundOffset = UInt64(offset << _Self._strideBits)
     _cache = .utf16
   }
 
+  @_inlineable
   @_versioned
   internal init(encodedOffset o: Int, transcodedOffset: Int = 0, _ c: _Cache) {
     _compoundOffset = UInt64(o << _Self._strideBits | transcodedOffset)
     _cache = c
   }
   
+  @_inlineable
+  @_versioned
   internal static var _strideBits : Int { return 2 }
+  @_inlineable
+  @_versioned
   internal static var _mask : UInt64 { return (1 &<< _Self._strideBits) &- 1 }
   
+  @_inlineable
+  @_versioned
   internal mutating func _setEncodedOffset(_ x: Int) {
     _compoundOffset = UInt64(x << _Self._strideBits)
   }
   
   /// The offset into a string's UTF-16 encoding for this index.
+  @_inlineable
   public var encodedOffset : Int {
     return Int(_compoundOffset >> _Self._strideBits)
   }
 
   /// The offset of this index within whatever encoding this is being viewed as
+  @_inlineable
   @_versioned
   internal var _transcodedOffset : Int {
     get {
@@ -105,6 +122,7 @@ extension String.Index {
 
 // SPI for Foundation
 extension String.Index {
+  @_inlineable
   @available(swift, deprecated: 3.2)
   @available(swift, obsoleted: 4.0)
   public // SPI(Foundation)    
@@ -112,6 +130,7 @@ extension String.Index {
     self.init(encodedOffset: _position)
   }
   
+  @_inlineable
   @available(swift, deprecated: 3.2)
   @available(swift, obsoleted: 4.0)
   public // SPI(Foundation)    
@@ -119,6 +138,7 @@ extension String.Index {
     self.init(encodedOffset: _offset)
   }
   
+  @_inlineable
   @available(swift, deprecated: 3.2)
   @available(swift, obsoleted: 4.0)
   public // SPI(Foundation)    
@@ -127,6 +147,7 @@ extension String.Index {
   }
   
   /// The integer offset of this index in UTF-16 code units.
+  @_inlineable
   @available(swift, deprecated: 3.2)
   @available(swift, obsoleted: 4.0)
   public // SPI(Foundation)
@@ -135,6 +156,7 @@ extension String.Index {
   }
 
   /// The integer offset of this index in UTF-16 code units.
+  @_inlineable
   @available(swift, deprecated: 3.2)
   @available(swift, obsoleted: 4.0)
   public // SPI(Foundation)
@@ -146,6 +168,7 @@ extension String.Index {
 
 // backward compatibility for index interchange.  
 extension Optional where Wrapped == String.Index {
+  @_inlineable
   @available(
     swift, obsoleted: 4.0,
     message: "Any String view index conversion can fail in Swift 4; please unwrap the optional indices")
@@ -155,6 +178,7 @@ extension Optional where Wrapped == String.Index {
     return lhs! ..< rhs!
   }
 
+  @_inlineable
   @available(
     swift, obsoleted: 4.0,
     message: "Any String view index conversion can fail in Swift 4; please unwrap the optional indices")

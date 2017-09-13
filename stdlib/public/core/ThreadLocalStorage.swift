@@ -25,6 +25,8 @@ let _destroyTLSCounter = _stdlib_AtomicInt()
 // pointer. Similarly, shouldn't be created, except by
 // _initializeThreadLocalStorage.
 //
+@_versioned
+@_fixed_layout
 internal struct _ThreadLocalStorage {
   // TODO: might be best to absract uBreakIterator handling and caching into
   // separate struct. That would also make it easier to maintain multiple ones
@@ -37,7 +39,8 @@ internal struct _ThreadLocalStorage {
   // UBreakIterator than recreating one.
   //
   // private
-  var uBreakIterator: OpaquePointer
+  @_versioned
+  internal var uBreakIterator: OpaquePointer
 
   // TODO: Consider saving two, e.g. for character-by-character comparison
 
@@ -55,12 +58,16 @@ internal struct _ThreadLocalStorage {
   // TODO: unowned reference to string owner, base address, and _countAndFlags
 
   // private: Should only be called by _initializeThreadLocalStorage
-  init(_uBreakIterator: OpaquePointer) {
+  @_inlineable
+  @_versioned
+  internal init(_uBreakIterator: OpaquePointer) {
     self.uBreakIterator = _uBreakIterator
   }
 
   // Get the current thread's TLS pointer. On first call for a given thread,
   // creates and initializes a new one.
+  @_inlineable
+  @_versioned
   static internal func getPointer()
     -> UnsafeMutablePointer<_ThreadLocalStorage>
   {
@@ -75,6 +82,8 @@ internal struct _ThreadLocalStorage {
 
   // Retrieve our thread's local uBreakIterator and set it up for the given
   // StringCore.
+  @_inlineable
+  @_versioned
   static internal func getUBreakIterator(
     for core: _StringCore
   ) -> OpaquePointer {
@@ -84,6 +93,8 @@ internal struct _ThreadLocalStorage {
     return getUBreakIterator(
       for: UnsafeBufferPointer(start: corePtr, count: core.count))
   }
+  @_inlineable
+  @_versioned
   static internal func getUBreakIterator(
     for bufPtr: UnsafeBufferPointer<UTF16.CodeUnit>
   ) -> OpaquePointer {
@@ -101,6 +112,8 @@ internal struct _ThreadLocalStorage {
 
 // Destructor to register with pthreads. Responsible for deallocating any memory
 // owned.
+@_inlineable
+@_versioned
 internal func _destroyTLS(_ ptr: UnsafeMutableRawPointer?) {
   _sanityCheck(ptr != nil,
     "_destroyTLS was called, but with nil...")
@@ -116,6 +129,7 @@ internal func _destroyTLS(_ ptr: UnsafeMutableRawPointer?) {
 }
 
 // Lazily created global key for use with pthread TLS
+@_versioned
 internal let _tlsKey: __swift_pthread_key_t = {
   let sentinelValue = __swift_pthread_key_t.max
   var key: __swift_pthread_key_t = sentinelValue
@@ -125,6 +139,8 @@ internal let _tlsKey: __swift_pthread_key_t = {
   return key
 }()
 
+@_inlineable
+@_versioned
 @inline(never)
 internal func _initializeThreadLocalStorage()
   -> UnsafeMutablePointer<_ThreadLocalStorage>
