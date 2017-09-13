@@ -14,10 +14,13 @@
 // Policy.swift.  Similar components should usually be defined next to
 // their respective protocols.
 
+@_versioned
 internal struct _CollectionOf<
   IndexType : Strideable, Element
 > : Collection {
 
+  @_inlineable
+  @_versioned
   internal init(
     _startIndex: IndexType, endIndex: IndexType,
     _ subscriptImpl: @escaping (IndexType) -> Element
@@ -30,7 +33,9 @@ internal struct _CollectionOf<
   /// Returns an iterator over the elements of this sequence.
   ///
   /// - Complexity: O(1).
-  func makeIterator() -> AnyIterator<Element> {
+  @_inlineable
+  @_versioned
+  internal func makeIterator() -> AnyIterator<Element> {
     var index = startIndex
     return AnyIterator {
       () -> Element? in
@@ -42,17 +47,24 @@ internal struct _CollectionOf<
     }
   }
 
+  @_versioned
   internal let startIndex: IndexType
+  @_versioned
   internal let endIndex: IndexType
 
+  @_inlineable
+  @_versioned
   internal func index(after i: IndexType) -> IndexType {
     return i.advanced(by: 1)
   }
 
+  @_inlineable
+  @_versioned
   internal subscript(i: IndexType) -> Element {
     return _subscriptImpl(i)
   }
 
+  @_versioned
   internal let _subscriptImpl: (IndexType) -> Element
 }
 
