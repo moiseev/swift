@@ -84,11 +84,11 @@ extension LazyCollectionProtocol {
   ///
   /// - Complexity: O(1)
   @_inlineable // FIXME(sil-serialize-all)
-  public func flatMap<SegmentOfResult>(
+  public func flatMap<SegmentOfResult: Collection>(
     _ transform: @escaping (Elements.Element) -> SegmentOfResult
   ) -> LazyCollection<
     FlattenCollection<
-      LazyMapCollection<Elements, SegmentOfResult>>
+      LazyMap<Elements, SegmentOfResult>>
   > {
     return self.map(transform).joined()
   }

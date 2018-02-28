@@ -15,8 +15,7 @@
 /// These elements are computed lazily, each time they're read, by
 /// calling the transform function on a base element.
 @_fixed_layout
-public struct LazyMapSequence<Base : Sequence, Element> {
-
+public struct LazyMap<Base: Sequence, Element> {
   public typealias Elements = LazyMapSequence
 
   @_versioned
@@ -34,7 +33,7 @@ public struct LazyMapSequence<Base : Sequence, Element> {
   }
 }
 
-extension LazyMapSequence {
+extension LazyMap {
   @_fixed_layout
   public struct Iterator {
     @_versioned
@@ -57,7 +56,7 @@ extension LazyMapSequence {
   }
 }
 
-extension LazyMapSequence.Iterator: IteratorProtocol, Sequence {
+extension LazyMap.Iterator: IteratorProtocol, Sequence {
   /// Advances to the next element and returns it, or `nil` if no next element
   /// exists.
   ///
@@ -71,7 +70,8 @@ extension LazyMapSequence.Iterator: IteratorProtocol, Sequence {
   }
 }
 
-extension LazyMapSequence: LazySequenceProtocol {
+extension LazyMap: Sequence, LazySequenceProtocol {
+  public typealias SubSequence = AnySequence<Element>
   /// Returns an iterator over the elements of this sequence.
   ///
   /// - Complexity: O(1).
@@ -94,54 +94,11 @@ extension LazyMapSequence: LazySequenceProtocol {
   }
 }
 
-/// A `Collection` whose elements consist of those in a `Base`
-/// `Collection` passed through a transform function returning `Element`.
-/// These elements are computed lazily, each time they're read, by
-/// calling the transform function on a base element.
-@_fixed_layout
-public struct LazyMapCollection<Base: Collection, Element> {
-  @_versioned
-  internal var _base: Base
-  @_versioned
-  internal let _transform: (Base.Element) -> Element
-
-  /// Create an instance with elements `transform(x)` for each element
-  /// `x` of base.
-  @_inlineable
-  @_versioned
-  internal init(_base: Base, transform: @escaping (Base.Element) -> Element) {
-    self._base = _base
-    self._transform = transform
-  }  
-}
-
-extension LazyMapCollection: Sequence {
-  public typealias Iterator = LazyMapSequence<Base,Element>.Iterator
-
-  /// Returns an iterator over the elements of this sequence.
-  ///
-  /// - Complexity: O(1).
-  @_inlineable
-  public func makeIterator() -> Iterator {
-    return Iterator(_base: _base.makeIterator(), _transform: _transform)
-  }
-
-  /// A value less than or equal to the number of elements in the sequence,
-  /// calculated nondestructively.
-  ///
-  /// - Complexity: O(1) if the collection conforms to
-  ///   `RandomAccessCollection`; otherwise, O(*n*), where *n* is the length
-  ///   of the collection.
-  @_inlineable
-  public var underestimatedCount: Int {
-    return _base.underestimatedCount
-  }
-}
-
-extension LazyMapCollection: LazyCollectionProtocol {
+extension LazyMap: Collection, LazyCollectionProtocol
+where Base: Collection {
   public typealias Index = Base.Index
   public typealias Indices = Base.Indices
-  public typealias SubSequence = LazyMapCollection<Base.SubSequence, Element>
+  public typealias SubSequence = LazyMap<Base.SubSequence, Element>
 
   @_inlineable
   public var startIndex: Base.Index { return _base.startIndex }
@@ -211,8 +168,8 @@ extension LazyMapCollection: LazyCollectionProtocol {
   }
 }
 
-extension LazyMapCollection : BidirectionalCollection
-  where Base : BidirectionalCollection {
+extension LazyMap: BidirectionalCollection
+where Base: BidirectionalCollection {
 
   /// A value less than or equal to the number of elements in the collection.
   ///
@@ -231,8 +188,8 @@ extension LazyMapCollection : BidirectionalCollection
   public var last: Element? { return _base.last.map(_transform) }
 }
 
-extension LazyMapCollection : RandomAccessCollection
-  where Base : RandomAccessCollection { }
+extension LazyMap: RandomAccessCollection
+where Base: RandomAccessCollection { }
 
 //===--- Support for s.lazy -----------------------------------------------===//
 
@@ -243,8 +200,8 @@ extension LazySequenceProtocol {
   @_inlineable
   public func map<U>(
     _ transform: @escaping (Elements.Element) -> U
-  ) -> LazyMapSequence<Self.Elements, U> {
-    return LazyMapSequence(_base: self.elements, transform: transform)
+  ) -> LazyMap<Self.Elements, U> {
+    return LazyMap(_base: self.elements, transform: transform)
   }
 }
 
@@ -255,18 +212,18 @@ extension LazyCollectionProtocol {
   @_inlineable
   public func map<U>(
     _ transform: @escaping (Elements.Element) -> U
-  ) -> LazyMapCollection<Self.Elements, U> {
-    return LazyMapCollection(_base: self.elements, transform: transform)
+  ) -> LazyMap<Self.Elements, U> {
+    return LazyMap(_base: self.elements, transform: transform)
   }
 }
 
-extension LazyMapCollection {
+extension LazyMap {
   // This overload is needed to re-enable Swift 3 source compatibility related
   // to a bugfix in ranking behavior of the constraint solver.
   @available(swift, obsoleted: 4.0)
   public static func + <
     Other : LazyCollectionProtocol
-  >(lhs: LazyMapCollection, rhs: Other) -> [Element]
+  >(lhs: LazyMap, rhs: Other) -> [Element]
   where Other.Element == Element {
     var result: [Element] = []
     result.reserveCapacity(numericCast(lhs.count + rhs.count))
@@ -276,25 +233,13 @@ extension LazyMapCollection {
   }
 }
 
-extension LazyMapSequence {
+extension LazyMap {
   @_inlineable
   @available(swift, introduced: 5)
   public func map<ElementOfResult>(
     _ transform: @escaping (Element) -> ElementOfResult
-  ) -> LazyMapSequence<Base, ElementOfResult> {
-    return LazyMapSequence<Base, ElementOfResult>(
-      _base: _base,
-      transform: {transform(self._transform($0))})
-  }
-}
-
-extension LazyMapCollection {
-  @_inlineable
-  @available(swift, introduced: 5)
-  public func map<ElementOfResult>(
-    _ transform: @escaping (Element) -> ElementOfResult
-  ) -> LazyMapCollection<Base, ElementOfResult> {
-    return LazyMapCollection<Base, ElementOfResult>(
+  ) -> LazyMap<Base, ElementOfResult> {
+    return LazyMap<Base, ElementOfResult>(
       _base: _base,
       transform: {transform(self._transform($0))})
   }
@@ -302,7 +247,11 @@ extension LazyMapCollection {
 
 // @available(*, deprecated, renamed: "LazyMapSequence.Iterator")
 public typealias LazyMapIterator<T, E> = LazyMapSequence<T, E>.Iterator where T: Sequence
-@available(*, deprecated, renamed: "LazyMapCollection")
+@available(*, deprecated, renamed: "LazyMap")
+public typealias LazyMapSequence<T, E> = LazyMap<T, E> where T: Sequence
+@available(*, deprecated, renamed: "LazyMap")
+public typealias LazyMapCollection<T, E> = LazyMap<T, E> where T: Collection
+@available(*, deprecated, renamed: "LazyMap")
 public typealias LazyMapBidirectionalCollection<T, E> = LazyMapCollection<T, E> where T : BidirectionalCollection
-@available(*, deprecated, renamed: "LazyMapCollection")
+@available(*, deprecated, renamed: "LazyMap")
 public typealias LazyMapRandomAccessCollection<T, E> = LazyMapCollection<T, E> where T : RandomAccessCollection
