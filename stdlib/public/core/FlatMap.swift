@@ -83,8 +83,9 @@ extension LazyCollectionProtocol {
   /// `c.map(transform).joined()`.
   ///
   /// - Complexity: O(1)
+#if false
   @_inlineable // FIXME(sil-serialize-all)
-  public func flatMap<SegmentOfResult: Collection>(
+  public func flatMap<SegmentOfResult>(
     _ transform: @escaping (Elements.Element) -> SegmentOfResult
   ) -> LazyCollection<
     FlattenCollection<
@@ -92,6 +93,7 @@ extension LazyCollectionProtocol {
   > {
     return self.map(transform).joined()
   }
+#endif
 
   /// Returns the non-`nil` results of mapping the given transformation over
   /// this collection.
@@ -103,6 +105,7 @@ extension LazyCollectionProtocol {
   ///   collection as its argument and returns an optional value.
   ///
   /// - Complexity: O(1)
+#if false
   @_inlineable // FIXME(sil-serialize-all)
   public func compactMap<ElementOfResult>(
     _ transform: @escaping (Elements.Element) -> ElementOfResult?
@@ -113,6 +116,7 @@ extension LazyCollectionProtocol {
   > {
     return self.map(transform).filter { $0 != nil }.map { $0! }
   }
+#endif
 
   /// Returns the non-`nil` results of mapping the given transformation over
   /// this collection.
@@ -124,6 +128,7 @@ extension LazyCollectionProtocol {
   ///   collection as its argument and returns an optional value.
   ///
   /// - Complexity: O(1)
+#if false
   @available(swift, deprecated: 4.1, renamed: "compactMap(_:)",
     message: "Please use compactMap(_:) for the case where closure returns an optional value")
   @_inlineable // FIXME(sil-serialize-all)
@@ -136,4 +141,5 @@ extension LazyCollectionProtocol {
   > {
     return self.map(transform).filter { $0 != nil }.map { $0! }
   }
+#endif
 }

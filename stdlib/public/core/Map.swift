@@ -16,7 +16,7 @@
 /// calling the transform function on a base element.
 @_fixed_layout
 public struct LazyMap<Base: Sequence, Element> {
-  public typealias Elements = LazyMapSequence
+  public typealias Elements = LazyMap
 
   @_versioned
   internal var _base: Base
@@ -71,7 +71,6 @@ extension LazyMap.Iterator: IteratorProtocol, Sequence {
 }
 
 extension LazyMap: Sequence, LazySequenceProtocol {
-  public typealias SubSequence = AnySequence<Element>
   /// Returns an iterator over the elements of this sequence.
   ///
   /// - Complexity: O(1).
@@ -91,6 +90,48 @@ extension LazyMap: Sequence, LazySequenceProtocol {
   @_inlineable
   public var underestimatedCount: Int {
     return _base.underestimatedCount
+  }
+
+  @_inlineable
+  public func dropFirst(_ n: Int) -> SubSequence {
+    fatalError()
+  }
+
+  @_inlineable
+  public func dropLast(_ n: Int) -> SubSequence {
+    fatalError()
+  }
+
+  @_inlineable
+  public func drop(
+    while predicate: (Element) throws -> Bool
+  ) rethrows -> SubSequence {
+    fatalError()
+  }
+
+  @_inlineable
+  public func prefix(_ maxLength: Int) -> SubSequence {
+    fatalError()
+  }
+
+  @_inlineable
+  public func prefix(
+    while predicate: (Element) throws -> Bool
+  ) rethrows -> SubSequence {
+    fatalError()
+  }
+
+  @_inlineable
+  public func suffix(_ maxLength: Int) -> SubSequence {
+    fatalError()
+  }
+
+  @_inlineable
+  public func split(
+    maxSplits: Int, omittingEmptySubsequences: Bool,
+    whereSeparator isSeparator: (Element) throws -> Bool
+  ) rethrows -> [SubSequence] {
+    fatalError()
   }
 }
 
@@ -220,6 +261,7 @@ extension LazyCollectionProtocol {
 extension LazyMap {
   // This overload is needed to re-enable Swift 3 source compatibility related
   // to a bugfix in ranking behavior of the constraint solver.
+#if false
   @available(swift, obsoleted: 4.0)
   public static func + <
     Other : LazyCollectionProtocol
@@ -231,6 +273,7 @@ extension LazyMap {
     result.append(contentsOf: rhs)
     return result
   }
+#endif
 }
 
 extension LazyMap {
