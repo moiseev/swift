@@ -785,7 +785,9 @@ public struct UnsafeMutablePointer<Pointee>: _Pointer {
     _debugPrecondition(
       count >= 0, "UnsafeMutablePointer.initialize with negative count")
     _debugPrecondition(
-      UnsafePointer(self) + count <= source ||
+      // FIXME: this used to be `UnsafePointer(self) + count` but became too
+      // complex with the introduction of new operator overloads for SIMD types
+      UnsafePointer(self).advanced(by: count) <= source ||
       source + count <= UnsafePointer(self),
       "UnsafeMutablePointer.initialize overlapping range")
     Builtin.copyArray(
