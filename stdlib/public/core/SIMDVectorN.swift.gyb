@@ -1,4 +1,24 @@
 %for N in [2,3,4,8,16,32,64]:
+
+public protocol SIMDVectorizable${N} {
+  associatedtype _BuiltinVector${N}
+  associatedtype _VectorMask${N}: SIMDMask, SIMDVector${N}
+
+  static func _builtinVector${N}Initialize() -> _BuiltinVector${N}
+  static func _builtinVector${N}Get(from vector: _BuiltinVector${N}, at index: Int) -> Self
+  static func _builtinVector${N}Set(_ value: Self, into vector: inout _BuiltinVector${N}, at index: Int)
+}
+
+/*
+public protocol SIMDIntegerVectorizable${N}:
+  SIMDVectorizable${N}, FixedWidthInteger {
+}
+
+public protocol SIMDFloatingPointVectorizable${N}:
+  SIMDVectorizable${N}, BinaryFloatingPoint {
+}
+*/
+
 /// A computational vector with ${N} elements.
 public protocol SIMDVector${N} : SIMDVector where Mask : SIMDVector${N} {
 % if N >= 4:
@@ -113,4 +133,49 @@ public extension SIMDVector${N} {
 }
 
 % end
+
+extension SIMD {
+
+  @_fixed_layout
+  public struct Vector${N}<Element>
+  where Element : SIMDVectorizable${N} & Hashable {
+    public var _value: Element._BuiltinVector${N}
+    // FIXME: marking it @_transparent results in a compiler error
+    public init(_ _value: Element._BuiltinVector${N}) {
+      self._value = _value
+    }
+  }
+}
+
+extension SIMD.Vector${N} /*: SIMDVector*/ {
+  public typealias Mask = Element._VectorMask${N}
+
+  @_transparent
+  public init() {
+    self.init(Element._builtinVector${N}Initialize())
+  }
+
+  public subscript(index: Int) -> Element {
+    @_transparent
+    get {
+      // FIXME: make sure that these preconditions are checked
+      // _precondition(index >= 0 && index < ${N})
+      return Element._builtinVector${N}Get(from: _value, at: index)
+    }
+
+    @_transparent
+    set {
+      // _precondition(index >= 0 && index < ${N})
+      Element._builtinVector${N}Set(newValue, into: &_value, at: index)
+    }
+  }
+}
+
+// FIXME: Next do this!!!
+extension SIMD.Vector${N}/*: SIMDVector${N} */ {
+% if N >= 4:
+  public typealias HalfVector = SIMD.Vector${N/2}
+% end
+}
+
 %end
