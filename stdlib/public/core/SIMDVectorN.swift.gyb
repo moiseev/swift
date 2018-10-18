@@ -12,15 +12,36 @@ public protocol SIMDVectorizable${N} {
   static func _builtinVector${N}(_ value: _BuiltinVector${N}, replacingWith other: _BuiltinVector${N}, where mask: _Vector${N}Mask) -> _BuiltinVector${N}
 }
 
-/*
 public protocol SIMDIntegerVectorizable${N}:
   SIMDVectorizable${N}, FixedWidthInteger {
+  static func _builtinVector${N}Initialize(bitMaskFrom: _Vector${N}Mask) -> _BuiltinVector${N}
+  static func _builtinVector${N}LeadingZeroBitCount(in vector: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}TrailingZeroBitCount(in vector: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}NonzeroBitCount(in vector: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}ElementBytesSwapped(in vector: _BuiltinVector${N}) -> _BuiltinVector${N}
+  /*static func _builtinVector${N}*/
+
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isLessThan rhs: _BuiltinVector${N}) -> _Vector${N}Mask
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isLessThanOrEqual rhs: _BuiltinVector${N}) -> _Vector${N}Mask
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isGreaterThan rhs: _BuiltinVector${N}) -> _Vector${N}Mask
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isGreaterThanOrEqual rhs: _BuiltinVector${N}) -> _Vector${N}Mask
+
+  static func _builtinVector${N}Complement(of vector: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, xor rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, and rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, or rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, shiftedRightBy rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, shiftedLeftBy rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, adding rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, subtracting rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, multipliedBy rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, dividedBy rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, remainderDividingBy rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
 }
 
 public protocol SIMDFloatingPointVectorizable${N}:
   SIMDVectorizable${N}, BinaryFloatingPoint {
 }
-*/
 
 /// A computational vector with ${N} elements.
 public protocol SIMDVector${N} : SIMDVector where Mask : SIMDVector${N} {
@@ -227,5 +248,67 @@ extension SIMD.Vector${N}: SIMDVector${N} ${Constraints} {
 % end
 }
 
+extension SIMD.Vector${N}: SIMDIntegerVector
+where Element: SIMDIntegerVectorizable${N} & FixedWidthInteger {
 
+  @inlinable
+  public init(bitMaskFrom mask: Mask) {
+    self.init(Element._builtinVector${N}Initialize(bitMaskFrom: mask))
+  }
+
+%   firstCap = lambda s: s[:1].upper() + s[1:]
+%   for property in [
+%     'leadingZeroBitCount',
+%     'trailingZeroBitCount',
+%     'nonzeroBitCount',
+%     'elementBytesSwapped']:
+  public var ${property}: SIMD.Vector${N}<Element> {
+    return SIMD.Vector${N}(
+      Element._builtinVector${N}${firstCap(property)}(in: _value))
+  }
+%   end
+
+
+%   for (operator, spelling) in [
+%      ('<', 'isLessThan'),
+%      ('<=', 'isLessThanOrEqual'),
+%      ('>', 'isGreaterThan'),
+%      ('>=', 'isGreaterThanOrEqual')
+%   ]:
+  public static func ${operator}(
+    lhs: SIMD.Vector${N}<Element>, rhs: SIMD.Vector${N}<Element>
+  ) -> Mask {
+    return Element._builtinVector${N}(lhs._value, ${spelling}: rhs._value)
+  }
+%   end
+
+
+  public static prefix func ~(
+    rhs: SIMD.Vector${N}<Element>
+  ) -> SIMD.Vector${N}<Element> {
+    return SIMD.Vector${N}(
+      Element._builtinVector${N}Complement(of: rhs._value))
+  }
+
+%   for (operator, spelling) in [
+%      ('^', 'xor'),
+%      ('&', 'and'),
+%      ('|', 'or'),
+%      ('&>>', 'shiftedRightBy'),
+%      ('&<<', 'shiftedLeftBy'),
+%      ('&+', 'adding'),
+%      ('&-', 'subtracting'),
+%      ('.&*', 'multipliedBy'),
+%      ('/', 'dividedBy'),
+%      ('%', 'remainderDividingBy')
+%   ]:
+  public static func ${operator}(
+    lhs: SIMD.Vector${N}<Element>, rhs: SIMD.Vector${N}<Element>
+  ) -> SIMD.Vector${N}<Element> {
+    return SIMD.Vector${N}(
+      Element._builtinVector${N}(lhs._value, ${spelling}: rhs._value))
+  }
+%   end
+
+}
 %end
