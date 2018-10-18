@@ -2,11 +2,14 @@
 
 public protocol SIMDVectorizable${N} {
   associatedtype _BuiltinVector${N}
-  associatedtype _VectorMask${N}: SIMDMask, SIMDVector${N}
+  associatedtype _Vector${N}Mask: SIMDMask, SIMDVector${N}
 
+  // Hooks for the SIMDVector conformance
   static func _builtinVector${N}Initialize() -> _BuiltinVector${N}
   static func _builtinVector${N}Get(from vector: _BuiltinVector${N}, at index: Int) -> Self
   static func _builtinVector${N}Set(_ value: Self, into vector: inout _BuiltinVector${N}, at index: Int)
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isEqualTo rhs: _BuiltinVector${N}) -> _Vector${N}Mask
+  static func _builtinVector${N}(_ value: _BuiltinVector${N}, replacingWith other: _BuiltinVector${N}, where mask: _Vector${N}Mask) -> _BuiltinVector${N}
 }
 
 /*
@@ -138,8 +141,9 @@ extension SIMD {
 
   @_fixed_layout
   public struct Vector${N}<Element>
-  where Element : SIMDVectorizable${N} & Hashable {
+  where Element: Hashable & SIMDVectorizable${N} {
     public var _value: Element._BuiltinVector${N}
+
     // FIXME: marking it @_transparent results in a compiler error
     public init(_ _value: Element._BuiltinVector${N}) {
       self._value = _value
@@ -147,8 +151,8 @@ extension SIMD {
   }
 }
 
-extension SIMD.Vector${N} /*: SIMDVector*/ {
-  public typealias Mask = Element._VectorMask${N}
+extension SIMD.Vector${N}: SIMDVector {
+  public typealias Mask = Element._Vector${N}Mask
 
   @_transparent
   public init() {
@@ -169,13 +173,59 @@ extension SIMD.Vector${N} /*: SIMDVector*/ {
       Element._builtinVector${N}Set(newValue, into: &_value, at: index)
     }
   }
+
+  public static func .==(
+    lhs: SIMD.Vector${N}<Element>, rhs: SIMD.Vector${N}<Element>
+  ) -> Mask {
+    return Element._builtinVector${N}(lhs._value, isEqualTo: rhs._value)
+  }
+
+  public func replacing(
+    with other: SIMD.Vector${N}<Element>, where mask: Mask
+  ) -> SIMD.Vector${N}<Element> {
+    return SIMD.Vector${N}(
+      Element._builtinVector${N}(_value, replacingWith: other._value, where: mask))
+  }
+
+  // FIXME: this part of SIMDVector conformance could be provided by
+  // SIMDVector${N} defaults, but SIMD.Vector${N} only conforms to
+  // SIMDVector${N} conditionally, so...
+  @_transparent
+  public var count: Int { return ${N} }
+
+  @inlinable
+  public init(repeating x: Element) {
+    self = [${', '.join('x'*N)}]
+  }
+
+  @inlinable
+  public init(arrayLiteral elements: Element...) {
+    self.init(elements)
+  }
+
+  @inlinable
+  public init(_ array: [Element]) {
+    _precondition(array.count == ${N})
+    self.init()
+    for i in 0 ..< count { self[i] = array[i] }
+  }
 }
 
-// FIXME: Next do this!!!
-extension SIMD.Vector${N}/*: SIMDVector${N} */ {
+%{
+# In order to conform to SIMDVectorN, the HalfVector type with the same Element
+# type is needed, # which means that the same Element now needs to not only
+# conform to SIMDVectorizableN, # but also SIMDVectorizable(N/2), adn so forth
+# recursively all the way down to SIMDVectorizable2.
+Constraints = ''
+if N >= 4:
+  SubNs = [n for n in [2,4,8,16,32] if n < N]
+  Constraints = '\nwhere Element: ' + ' & '.join(['SIMDVectorizable' + str(n) for n in SubNs])
+}%
+extension SIMD.Vector${N}: SIMDVector${N} ${Constraints} {
 % if N >= 4:
-  public typealias HalfVector = SIMD.Vector${N/2}
+  public typealias HalfVector = SIMD.Vector${N/2}<Element>
 % end
 }
+
 
 %end
