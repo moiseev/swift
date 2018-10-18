@@ -40,6 +40,18 @@ public protocol SIMDIntegerVectorizable${N}:
 
 public protocol SIMDFloatingPointVectorizable${N}:
   SIMDVectorizable${N}, BinaryFloatingPoint {
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isLessThan rhs: _BuiltinVector${N}) -> _Vector${N}Mask
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isLessThanOrEqualTo rhs: _BuiltinVector${N}) -> _Vector${N}Mask
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isGreaterThan rhs: _BuiltinVector${N}) -> _Vector${N}Mask
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isGreaterThanOrEqualTo rhs: _BuiltinVector${N}) -> _Vector${N}Mask
+
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, adding rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, subtracting rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, multipliedBy rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, dividedBy rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, addingProduct rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
+
+  static func _builtinVector${N}(rounding vector: inout _BuiltinVector${N}, _ rule: FloatingPointRoundingRule)
 }
 
 /// A computational vector with ${N} elements.
@@ -309,5 +321,47 @@ where Element: SIMDIntegerVectorizable${N} & FixedWidthInteger {
   }
 %   end
 
+}
+
+extension SIMD.Vector${N}: SIMDFloatingPointVector
+where Element: SIMDFloatingPointVectorizable${N} & BinaryFloatingPoint,
+      Element.RawSignificand: FixedWidthInteger {
+%   for (operator, spelling) in [
+%      ('<', 'isLessThan'),
+%      ('<=', 'isLessThanOrEqualTo'),
+%      ('>', 'isGreaterThan'),
+%      ('>=', 'isGreaterThanOrEqualTo')
+%   ]:
+  public static func ${operator}(
+    lhs: SIMD.Vector${N}<Element>, rhs: SIMD.Vector${N}<Element>
+  ) -> Mask {
+    return Element._builtinVector${N}(lhs._value, ${spelling}: rhs._value)
+  }
+%   end
+
+%   for (operator, spelling) in [
+%      ('+', 'adding'),
+%      ('-', 'subtracting'),
+%      ('.*', 'multipliedBy'),
+%      ('/', 'dividedBy'),
+%   ]:
+  public static func ${operator}(
+    lhs: SIMD.Vector${N}<Element>, rhs: SIMD.Vector${N}<Element>
+  ) -> SIMD.Vector${N}<Element> {
+    return SIMD.Vector${N}(
+      Element._builtinVector${N}(lhs._value, ${spelling}: rhs._value))
+  }
+%   end
+
+  public func addingProduct(
+    _ lhs: SIMD.Vector${N}<Element>, _ rhs: SIMD.Vector${N}<Element>
+  ) -> SIMD.Vector${N}<Element> {
+    return SIMD.Vector${N}(
+      Element._builtinVector${N}(lhs._value, addingProduct: rhs._value))
+  }
+
+  public mutating func round(_ rule: FloatingPointRoundingRule) {
+    Element._builtinVector${N}(rounding: &_value, rule)
+  }
 }
 %end
