@@ -19,12 +19,11 @@ public protocol SIMDIntegerVectorizable${N}:
   static func _builtinVector${N}TrailingZeroBitCount(in vector: _BuiltinVector${N}) -> _BuiltinVector${N}
   static func _builtinVector${N}NonzeroBitCount(in vector: _BuiltinVector${N}) -> _BuiltinVector${N}
   static func _builtinVector${N}ElementBytesSwapped(in vector: _BuiltinVector${N}) -> _BuiltinVector${N}
-  /*static func _builtinVector${N}*/
 
   static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isLessThan rhs: _BuiltinVector${N}) -> _Vector${N}Mask
-  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isLessThanOrEqual rhs: _BuiltinVector${N}) -> _Vector${N}Mask
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isLessThanOrEqualTo rhs: _BuiltinVector${N}) -> _Vector${N}Mask
   static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isGreaterThan rhs: _BuiltinVector${N}) -> _Vector${N}Mask
-  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isGreaterThanOrEqual rhs: _BuiltinVector${N}) -> _Vector${N}Mask
+  static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isGreaterThanOrEqualTo rhs: _BuiltinVector${N}) -> _Vector${N}Mask
 
   static func _builtinVector${N}Complement(of vector: _BuiltinVector${N}) -> _BuiltinVector${N}
   static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, xor rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
@@ -271,9 +270,9 @@ where Element: SIMDIntegerVectorizable${N} & FixedWidthInteger {
 
 %   for (operator, spelling) in [
 %      ('<', 'isLessThan'),
-%      ('<=', 'isLessThanOrEqual'),
+%      ('<=', 'isLessThanOrEqualTo'),
 %      ('>', 'isGreaterThan'),
-%      ('>=', 'isGreaterThanOrEqual')
+%      ('>=', 'isGreaterThanOrEqualTo')
 %   ]:
   public static func ${operator}(
     lhs: SIMD.Vector${N}<Element>, rhs: SIMD.Vector${N}<Element>
