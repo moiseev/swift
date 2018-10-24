@@ -1,3 +1,6 @@
+%word_bits = int(CMAKE_SIZEOF_VOID_P) * 8
+%from SwiftVectorTypes import all_integer_types, all_vector_types, vector_max_bits
+
 %for N in [2,3,4,8,16,32,64]:
 
 public protocol SIMDVectorizable${N} {
@@ -25,7 +28,6 @@ public protocol SIMDIntegerVectorizable${N}:
   static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isGreaterThan rhs: _BuiltinVector${N}) -> _Vector${N}Mask
   static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, isGreaterThanOrEqualTo rhs: _BuiltinVector${N}) -> _Vector${N}Mask
 
-  static func _builtinVector${N}Complement(of vector: _BuiltinVector${N}) -> _BuiltinVector${N}
   static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, xor rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
   static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, and rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
   static func _builtinVector${N}(_ lhs: _BuiltinVector${N}, or rhs: _BuiltinVector${N}) -> _BuiltinVector${N}
@@ -294,13 +296,6 @@ where Element: SIMDIntegerVectorizable${N} & FixedWidthInteger {
 %   end
 
 
-  public static prefix func ~(
-    rhs: SIMD.Vector${N}<Element>
-  ) -> SIMD.Vector${N}<Element> {
-    return SIMD.Vector${N}(
-      Element._builtinVector${N}Complement(of: rhs._value))
-  }
-
 %   for (operator, spelling) in [
 %      ('^', 'xor'),
 %      ('&', 'and'),
@@ -364,4 +359,81 @@ where Element: SIMDFloatingPointVectorizable${N} & BinaryFloatingPoint,
     Element._builtinVector${N}(rounding: &_value, rule)
   }
 }
+
+extension SIMD.Vector${N}
+where Element: SIMDVectorizable${N} & FixedWidthInteger {
+  // Operations not required by any protocol -------------------------------
+  @inlinable
+  public init<Other>(truncatingIfNeeded other: Other)
+  where Other: SIMDVector${N} & SIMDIntegerVector {
+    self.init()
+    for i in 0 ..< count { self[i] = Element(truncatingIfNeeded: other[i]) }
+  }
+
+  @inlinable
+  public init<Other>(clamping other: Other)
+  where Other : SIMDVector${N} & SIMDIntegerVector {
+    self.init(truncatingIfNeeded:
+      clamp(other,
+            Other(repeating: Other.Element(clamping: Element.min)),
+            Other(repeating: Other.Element(clamping: Element.max))
+      )
+    )
+  }
+}
+
+%   FloatTypes = {32: 'Float', 64: 'Double'}
+%   for (bits, Element) in [(t.bits, t.stdlib_name) for t in all_integer_types(word_bits) if t.bits in [32, 64]]:
+%    Float = FloatTypes[bits]
+%    llvmN = N if N != 3 else 4
+%    LLVM = 'Vec' + str(llvmN) + 'xInt' + str(bits)
+%    if bits*N <= vector_max_bits:
+
+extension SIMD.Vector${N}
+where Element == ${Element} {
+  @_transparent
+  // FIXME: fix this once the SIMD.VectorN has support for FP (when
+  // Float/Double conforms to SIMDFloatingPointVectorizableN
+  public init(bitPattern other: ${Float}.Vector${N}) {
+    _value = Builtin.bitcast_Vec${llvmN}xFPIEEE${bits}_${LLVM}(other._value)
+  }
+}
+%    end
+%   end
+%end
+
+// TODO: we shouldn't need the concrete conversions that follow; we should
+// be able to vectorize the for-loop in the generic `truncatingIfNeeded`
+// init to a single vector sext, zext, nop, or trunc (or possibly one per
+// Swift-ABI legalized result vector). However, the optimizer can't yet do
+// this for all cases, which we should fix, but as a short-term workaround
+// we also have these concrete conversions.
+%for element_type in all_integer_types(word_bits):
+% bits = element_type.bits
+% Element = element_type.stdlib_name
+% for vector_type in all_vector_types(element_type):
+%  LLVM = vector_type.builtin_name
+%  N = vector_type.count
+%  llvmN = N if N != 3 else 4
+%  for other_type in all_integer_types(word_bits):
+%   other_bits = other_type.bits
+%   other_signed = other_type.is_signed
+%   Other = other_type.stdlib_name
+%   if other_bits*N <= vector_max_bits:
+%    OtherLLVM = 'Vec' + str(llvmN) + 'x' + other_type.builtin_name
+extension SIMD.Vector${N}
+where Element == ${Element} {
+  @_transparent
+  public init(truncatingIfNeeded other: SIMD.Vector${N}<${Other}>) {
+%     if other_bits >= bits:
+    self.init(Builtin.truncOrBitCast_${OtherLLVM}_${LLVM}(other._value))
+%     elif other_signed:
+    self.init(Builtin.sext_${OtherLLVM}_${LLVM}(other._value))
+%     else:
+    self.init(Builtin.zext_${OtherLLVM}_${LLVM}(other._value))
+%     end
+  }
+}
+%  end
+% end
 %end

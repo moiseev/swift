@@ -27,6 +27,9 @@ from SwiftVectorTypes import all_vector_counts
         self._value = _value
       }
 
+      // FIXME: a temporary hack
+      public init(_ _value: SIMD.Vector${N}<Int${bits}>) { fatalError() }
+
       public subscript(index: Int) -> Bool {
         @_transparent
         get {
